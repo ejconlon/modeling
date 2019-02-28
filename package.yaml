@@ -13,19 +13,14 @@ description: Please see the README on GitHub at <https://github.com/githubuser/m
 
 dependencies:
 - base >= 4.11 && < 5
-# - bound
-# - bytestring
-# - comonad
-# - data-fix
-# - containers
-# - free
-# - hashable
-# - lens
-# - mtl
-# - text
-# - transformers
-# - unordered-containers
-# - vector
+- aeson
+- containers
+- lens
+- mtl
+- text
+- transformers
+- vector
+- yaml
 
 default-extensions:
   - DeriveFunctor
@@ -59,6 +54,7 @@ tests:
     - -with-rtsopts=-N
     dependencies:
     - modeling
+    - heredoc
     - tasty
     - tasty-discover
     - tasty-hunit
