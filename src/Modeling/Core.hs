@@ -1,13 +1,10 @@
 module Modeling.Core where
 
-import Control.Monad.Reader (MonadReader, ReaderT, ask, asks, withReaderT)
-import Control.Monad.Trans (lift)
+import Control.Monad.Reader (ReaderT, withReaderT)
 import Data.Aeson
 import Data.Fix (Fix (..))
 import Data.Map (Map)
-import qualified Data.Map as Map
-import Data.Sequence (Seq, fromList)
-import qualified Data.Sequence as Seq
+import Data.Sequence (Seq)
 import Data.Text (Text)
 import GHC.Generics
 
@@ -133,25 +130,3 @@ data PartialOps d (m :: * -> *) t r = PartialOps
 fullToPartialOps :: Fix (FullOps d m t) -> Fix (PartialOps d m t)
 fullToPartialOps (Fix (FullOps {fullParamOps, fullBaseOps})) =
     Fix (PartialOps fullParamOps (convertBaseOps fullToPartialOps fullBaseOps))
-
-simpleBuilder :: (r ~ Fix (PartialOps d m t), Monad m) => Builder r m t
-simpleBuilder = do
-    Fix (PartialOps {..}) <- ask
-    lift $ do
-        simpleParam <- (externalOp partialParamOps) "simpleExternalParam" StringType
-        let simpleOpts = BaseOpts "simpleNs" (Map.singleton "simpleParamInternal" simpleParam) Map.empty Seq.empty
-        simpleModel <- (directOp partialBaseOps) simpleOpts "simpleModel"
-        (buildOp partialBaseOps) simpleModel
-
-complexBuilder :: (r ~ Fix (FullOps d m t), Monad m) => Builder r m t
-complexBuilder = do
-    Fix (FullOps {..}) <- ask
-    lift $ do
-        let firstOpts = BaseOpts "firstNs" Map.empty Map.empty Seq.empty
-        firstModel <- (directOp fullBaseOps) firstOpts "firstModel"
-        let secondOpts = BaseOpts "secondNs" Map.empty Map.empty Seq.empty
-        secondModel <- (embedOp fullBaseOps) secondOpts (convertBuilder fullToPartialOps simpleBuilder)
-        serialModel <- (serialOp fullExtOps) (fromList [firstModel, secondModel])
-        let splitOpts = SplitOpts { attribute = "region", values = fromList ["SFO", "LAX"], other = Just "OTHER" }
-        splitModel <- (splitOp fullExtOps) splitOpts serialModel
-        (buildOp fullBaseOps) splitModel
