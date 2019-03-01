@@ -6,9 +6,9 @@ import Data.Fix (Fix (..))
 import qualified Data.Map as Map
 import Data.Sequence (fromList)
 import qualified Data.Sequence as Seq
-import Modeling.Core
-import Modeling.Data
-import Modeling.Ext
+import Modeling.Data.Core
+import Modeling.Ops.Core
+import Modeling.Ops.Ext
 
 data FullOps d (m :: * -> *) t r = FullOps
     { fullParamOps :: ParamOps d m

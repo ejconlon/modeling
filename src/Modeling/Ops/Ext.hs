@@ -1,9 +1,9 @@
-module Modeling.Ext where
+module Modeling.Ops.Ext where
 
 import Data.Sequence (Seq)
 import Data.Text (Text)
 import GHC.Generics (Generic)
-import Modeling.Core
+import Modeling.Ops.Core
 
 type AttributeName = Text
 type AttributeValue = Text

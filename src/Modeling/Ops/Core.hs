@@ -1,4 +1,4 @@
-module Modeling.Core where
+module Modeling.Ops.Core where
 
 import Control.Monad.Reader (ReaderT, withReaderT)
 import Data.Aeson (Value)
@@ -6,7 +6,7 @@ import Data.Fix (Fix (..))
 import Data.Map (Map)
 import Data.Sequence (Seq)
 import Data.Text (Text)
-import Modeling.Data
+import Modeling.Data.Core
 
 type DirectName = Text
 type SubName = Text
