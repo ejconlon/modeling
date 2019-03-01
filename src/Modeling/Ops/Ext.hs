@@ -3,6 +3,7 @@ module Modeling.Ops.Ext where
 import Data.Sequence (Seq)
 import Data.Text (Text)
 import GHC.Generics (Generic)
+import Modeling.Data.Core
 import Modeling.Ops.Core
 
 type AttributeName = Text
@@ -15,6 +16,6 @@ data SplitOpts = SplitOpts
     } deriving (Generic, Show, Eq)
 
 data ExtOps d (m :: * -> *) = ExtOps
-    { serialOp :: Seq (IntModel d) -> m (IntModel d)
-    , splitOp :: SplitOpts -> (IntModel d) -> m (IntModel d)
+    { serialOp :: NamespacePart -> Seq (IntModel d) -> m (IntModel d)
+    , splitOp :: NamespacePart -> SplitOpts -> (IntModel d) -> m (IntModel d)
     }

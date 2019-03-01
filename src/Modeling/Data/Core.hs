@@ -13,11 +13,6 @@ type NamespacePart = Text
 type Namespace = Seq NamespacePart
 type ParamName = Text
 
-data Param = Param
-    { namespace :: Namespace
-    , name :: ParamName
-    } deriving (Generic, Show, Eq)
-
 data Type =
       StringType
     | LongType
@@ -29,23 +24,14 @@ data Type =
     | ReferenceType Text
     deriving (Generic, Show, Eq)
 
--- Relationship between X and GenericX: the serialized version of X can round-trip
--- through the inverse round trip of GenericX
+data ExtParam = ExtParam
+    { namespace :: Namespace
+    , name :: ParamName
+    , ty :: Type
+    } deriving (Generic, Show, Eq)
 
--- TODO consider not defining serializers, just convert to/from generics
-
--- instance ToJSON Type where
---     toJSON t =
---         case t of
---             StringType -> object ["name" .= ("string" :: Text)]
---             LongType -> object ["name" .= ("long" :: Text)]
---             DoubleType -> object ["name" .= ("double" :: Text)]
---             -- TODO fix up the rest of these
---             OptionalType a -> object ["name" .= ("optional" :: Text), "argument" .= a]
---             ListType a -> object ["name" .= ("list" :: Text), "argument" .= a]
---             MapType a -> object ["name" .= ("map" :: Text), "argument" .= a]
---             StructType ma -> object ["name" .= ("struct" :: Text), "struct" .= ma]
---             ReferenceType n -> object ["name" .= ("reference" :: Text), "reference" .= n]
-
--- TODO
--- instance FromJSON Type where
+data Bundle a = Bundle
+    { params :: Seq ExtParam
+    , typedefs :: Map Text Type
+    , root :: a
+    } deriving (Generic, Show, Eq)

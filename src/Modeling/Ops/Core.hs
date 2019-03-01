@@ -15,14 +15,13 @@ data family IntModel d
 data family IntParam d
 
 data BaseOpts d = BaseOpts
-    { namespace :: NamespacePart
-    , params :: Map ParamName (IntParam d)
+    { params :: Map ParamName (IntParam d)
     , namedSubs :: Map SubName (IntModel d)
     , unnamedSubs :: Seq (IntModel d)
     }
 
 data ParamOps d (m :: * -> *) = ParamOps
-    { externalOp :: ParamName -> Type -> m (IntParam d)
+    { externalOp :: Namespace -> ParamName -> Type -> m (IntParam d)
     , internalOp :: Type -> m (IntParam d)
     , literalOp :: Value -> m (IntParam d)
     }
@@ -36,14 +35,14 @@ convertBuilder = withReaderT
 type Context r (m :: * -> *) t u = Builder r m t -> m u
 
 data BaseOps d (m :: * -> *) t r = BaseOps
-    { directOp :: BaseOpts d -> DirectName -> m (IntModel d)
-    , embedOp :: BaseOpts d -> Builder r m t -> m (IntModel d)
+    { directOp :: NamespacePart -> BaseOpts d -> DirectName -> m (IntModel d)
+    , embedOp :: NamespacePart -> BaseOpts d -> Builder r m t -> m (IntModel d)
     , buildOp :: IntModel d -> m t
     }
 
 convertBaseOps :: (r -> s) -> BaseOps d m t r -> BaseOps d m t s
 convertBaseOps f (BaseOps { directOp, embedOp, buildOp }) = BaseOps
     { directOp = directOp
-    , embedOp = \opts builder -> embedOp opts (convertBuilder f builder)
+    , embedOp = \nsp opts builder -> embedOp nsp opts (convertBuilder f builder)
     , buildOp = buildOp
     }
