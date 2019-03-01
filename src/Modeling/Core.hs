@@ -137,19 +137,21 @@ fullToPartialOps (Fix (FullOps {fullParamOps, fullBaseOps})) =
 simpleBuilder :: (r ~ Fix (PartialOps d m t), Monad m) => Builder r m t
 simpleBuilder = do
     Fix (PartialOps {..}) <- ask
-    simpleParam <- lift ((externalOp partialParamOps) "simpleExternalParam" StringType)
-    let simpleOpts = BaseOpts "simpleNs" (Map.singleton "simpleParamInternal" simpleParam) Map.empty Seq.empty
-    simpleModel <- lift ((directOp partialBaseOps) simpleOpts "simpleModel")
-    lift ((buildOp partialBaseOps) simpleModel)
+    lift $ do
+        simpleParam <- (externalOp partialParamOps) "simpleExternalParam" StringType
+        let simpleOpts = BaseOpts "simpleNs" (Map.singleton "simpleParamInternal" simpleParam) Map.empty Seq.empty
+        simpleModel <- (directOp partialBaseOps) simpleOpts "simpleModel"
+        (buildOp partialBaseOps) simpleModel
 
 complexBuilder :: (r ~ Fix (FullOps d m t), Monad m) => Builder r m t
 complexBuilder = do
     Fix (FullOps {..}) <- ask
-    let firstOpts = BaseOpts "firstNs" Map.empty Map.empty Seq.empty
-    firstModel <- lift ((directOp fullBaseOps) firstOpts "firstModel")
-    let secondOpts = BaseOpts "secondNs" Map.empty Map.empty Seq.empty
-    secondModel <- lift ((embedOp fullBaseOps) secondOpts (convertBuilder fullToPartialOps simpleBuilder))
-    serialModel <- lift ((serialOp fullExtOps) (fromList [firstModel, secondModel]))
-    let splitOpts = SplitOpts { attribute = "region", values = fromList ["SFO", "LAX"], other = Just "OTHER" }
-    splitModel <- lift ((splitOp fullExtOps) splitOpts serialModel)
-    lift ((buildOp fullBaseOps) splitModel)
+    lift $ do
+        let firstOpts = BaseOpts "firstNs" Map.empty Map.empty Seq.empty
+        firstModel <- (directOp fullBaseOps) firstOpts "firstModel"
+        let secondOpts = BaseOpts "secondNs" Map.empty Map.empty Seq.empty
+        secondModel <- (embedOp fullBaseOps) secondOpts (convertBuilder fullToPartialOps simpleBuilder)
+        serialModel <- (serialOp fullExtOps) (fromList [firstModel, secondModel])
+        let splitOpts = SplitOpts { attribute = "region", values = fromList ["SFO", "LAX"], other = Just "OTHER" }
+        splitModel <- (splitOp fullExtOps) splitOpts serialModel
+        (buildOp fullBaseOps) splitModel
