@@ -3,6 +3,7 @@ module Modeling.Core where
 import Control.Monad.Reader (MonadReader, ReaderT, ask, asks, withReaderT)
 import Control.Monad.Trans (lift)
 import Data.Aeson
+import Data.Fix (Fix (..))
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Sequence (Seq, fromList)
@@ -100,13 +101,13 @@ convertBuilder = withReaderT
 
 type Context r (m :: * -> *) t u = Builder r m t -> m u
 
-data BaseOps r d (m :: * -> *) t = BaseOps
+data BaseOps d (m :: * -> *) t r = BaseOps
     { directOp :: BaseOpts d -> DirectName -> m (IntModel d)
     , embedOp :: BaseOpts d -> Builder r m t -> m (IntModel d)
     , buildOp :: IntModel d -> m t
     }
 
-convertBaseOps :: (r -> s) -> BaseOps r d m t -> BaseOps s d m t
+convertBaseOps :: (r -> s) -> BaseOps d m t r -> BaseOps d m t s
 convertBaseOps f (BaseOps { directOp, embedOp, buildOp }) = BaseOps
     { directOp = directOp
     , embedOp = \opts builder -> embedOp opts (convertBuilder f builder)
@@ -118,32 +119,32 @@ data ExtOps d (m :: * -> *) = ExtOps
     , splitOp :: SplitOpts -> (IntModel d) -> m (IntModel d)
     }
 
-data FullOps d (m :: * -> *) t = FullOps
+data FullOps d (m :: * -> *) t r = FullOps
     { fullParamOps :: ParamOps d m
-    , fullBaseOps :: BaseOps (FullOps d m t) d m t
+    , fullBaseOps :: BaseOps d m t r
     , fullExtOps :: ExtOps d m
     }
 
-data PartialOps d (m :: * -> *) t = PartialOps
+data PartialOps d (m :: * -> *) t r = PartialOps
     { partialParamOps :: ParamOps d m
-    , partialBaseOps :: BaseOps (PartialOps d m t) d m t
+    , partialBaseOps :: BaseOps d m t r
     }
 
-fullToPartialOps :: FullOps d m t -> PartialOps d m t
-fullToPartialOps (FullOps {fullParamOps, fullBaseOps}) =
-    PartialOps fullParamOps (convertBaseOps fullToPartialOps fullBaseOps)
+fullToPartialOps :: Fix (FullOps d m t) -> Fix (PartialOps d m t)
+fullToPartialOps (Fix (FullOps {fullParamOps, fullBaseOps})) =
+    Fix (PartialOps fullParamOps (convertBaseOps fullToPartialOps fullBaseOps))
 
-simpleBuilder :: (r ~ PartialOps d m t, Monad m) => Builder r m t
+simpleBuilder :: (r ~ Fix (PartialOps d m t), Monad m) => Builder r m t
 simpleBuilder = do
-    PartialOps {..} <- ask
+    Fix (PartialOps {..}) <- ask
     simpleParam <- lift ((externalOp partialParamOps) "simpleExternalParam" StringType)
     let simpleOpts = BaseOpts "simpleNs" (Map.singleton "simpleParamInternal" simpleParam) Map.empty Seq.empty
     simpleModel <- lift ((directOp partialBaseOps) simpleOpts "simpleModel")
     lift ((buildOp partialBaseOps) simpleModel)
 
-complexBuilder :: (r ~ FullOps d m t, Monad m) => Builder r m t
+complexBuilder :: (r ~ Fix (FullOps d m t), Monad m) => Builder r m t
 complexBuilder = do
-    FullOps {..} <- ask
+    Fix (FullOps {..}) <- ask
     let firstOpts = BaseOpts "firstNs" Map.empty Map.empty Seq.empty
     firstModel <- lift ((directOp fullBaseOps) firstOpts "firstModel")
     let secondOpts = BaseOpts "secondNs" Map.empty Map.empty Seq.empty
