@@ -1,14 +1,6 @@
-{-# LANGUAGE AllowAmbiguousTypes #-}
-{-# LANGUAGE DuplicateRecordFields #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE KindSignatures #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE Rank2Types #-}
-{-# LANGUAGE TypeFamilies #-}
-
 module Modeling.Core where
 
-import Control.Monad.Reader (MonadReader, ReaderT, ask)
+import Control.Monad.Reader (MonadReader, ReaderT, ask, asks, withReaderT)
 import Control.Monad.Trans (lift)
 import Data.Aeson
 import Data.Map (Map)
@@ -98,8 +90,13 @@ data ParamOps d (m :: * -> *) = ParamOps
     , literalOp :: Value -> m (IntParam d)
     }
 
+-- external :: (HasParamOps r d m, MonadReader r m)
+
 -- ReaderT r m t
 type Builder r (m :: * -> *) t = ReaderT r m t
+
+convertBuilder :: (r -> s) -> Builder s m t -> Builder r m t
+convertBuilder = withReaderT
 
 type Context r (m :: * -> *) t u = Builder r m t -> m u
 
@@ -109,33 +106,49 @@ data BaseOps r d (m :: * -> *) t = BaseOps
     , buildOp :: IntModel d -> m t
     }
 
+convertBaseOps :: (r -> s) -> BaseOps r d m t -> BaseOps s d m t
+convertBaseOps f (BaseOps { directOp, embedOp, buildOp }) = BaseOps
+    { directOp = directOp
+    , embedOp = \opts builder -> embedOp opts (convertBuilder f builder)
+    , buildOp = buildOp
+    }
+
 data ExtOps d (m :: * -> *) = ExtOps
     { serialOp :: Seq (IntModel d) -> m (IntModel d)
     , splitOp :: SplitOpts -> (IntModel d) -> m (IntModel d)
     }
 
 data FullOps d (m :: * -> *) t = FullOps
-    { paramOps :: ParamOps d m
-    , baseOps :: BaseOps (FullOps d m t) d m t
-    , extOps :: ExtOps d m
+    { fullParamOps :: ParamOps d m
+    , fullBaseOps :: BaseOps (FullOps d m t) d m t
+    , fullExtOps :: ExtOps d m
     }
 
-simpleBuilder :: (r ~ FullOps d m t, MonadReader r m) => Builder r m t
-simpleBuilder = do
-    dsl <- ask
-    simpleParam <- lift ((externalOp (paramOps dsl)) "simpleExternalParam" StringType)
-    let simpleOpts = BaseOpts "simpleNs" (Map.singleton "simpleParamInternal" simpleParam) Map.empty Seq.empty
-    simpleModel <- lift ((directOp (baseOps dsl)) simpleOpts "simpleModel")
-    lift ((buildOp (baseOps dsl)) simpleModel)
+data PartialOps d (m :: * -> *) t = PartialOps
+    { partialParamOps :: ParamOps d m
+    , partialBaseOps :: BaseOps (PartialOps d m t) d m t
+    }
 
-complexBuilder :: (r ~ FullOps d m t, MonadReader r m) => Builder r m t
+fullToPartialOps :: FullOps d m t -> PartialOps d m t
+fullToPartialOps (FullOps {fullParamOps, fullBaseOps}) =
+    PartialOps fullParamOps (convertBaseOps fullToPartialOps fullBaseOps)
+
+simpleBuilder :: (r ~ PartialOps d m t, Monad m) => Builder r m t
+simpleBuilder = do
+    PartialOps {..} <- ask
+    simpleParam <- lift ((externalOp partialParamOps) "simpleExternalParam" StringType)
+    let simpleOpts = BaseOpts "simpleNs" (Map.singleton "simpleParamInternal" simpleParam) Map.empty Seq.empty
+    simpleModel <- lift ((directOp partialBaseOps) simpleOpts "simpleModel")
+    lift ((buildOp partialBaseOps) simpleModel)
+
+complexBuilder :: (r ~ FullOps d m t, Monad m) => Builder r m t
 complexBuilder = do
-    dsl <- ask
+    FullOps {..} <- ask
     let firstOpts = BaseOpts "firstNs" Map.empty Map.empty Seq.empty
-    firstModel <- lift ((directOp (baseOps dsl)) firstOpts "firstModel")
+    firstModel <- lift ((directOp fullBaseOps) firstOpts "firstModel")
     let secondOpts = BaseOpts "secondNs" Map.empty Map.empty Seq.empty
-    secondModel <- lift ((embedOp (baseOps dsl)) secondOpts simpleBuilder)
-    serialModel <- lift ((serialOp (extOps dsl)) (fromList [firstModel, secondModel]))
+    secondModel <- lift ((embedOp fullBaseOps) secondOpts (convertBuilder fullToPartialOps simpleBuilder))
+    serialModel <- lift ((serialOp fullExtOps) (fromList [firstModel, secondModel]))
     let splitOpts = SplitOpts { attribute = "region", values = fromList ["SFO", "LAX"], other = Just "OTHER" }
-    splitModel <- lift ((splitOp (extOps dsl)) splitOpts serialModel)
-    lift ((buildOp (baseOps dsl)) splitModel)
+    splitModel <- lift ((splitOp fullExtOps) splitOpts serialModel)
+    lift ((buildOp fullBaseOps) splitModel)

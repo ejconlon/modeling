@@ -16,6 +16,7 @@ dependencies:
 - aeson
 - containers
 - data-fix
+- data-has
 - lens
 - mtl
 - text
@@ -28,8 +29,16 @@ default-extensions:
   - DeriveFoldable
   - DeriveGeneric
   - DeriveTraversable
+  - DuplicateRecordFields
+  - FlexibleContexts
+  - FlexibleInstances
   - GeneralizedNewtypeDeriving
+  - KindSignatures
+  - NamedFieldPuns
   - OverloadedStrings
+  - Rank2Types
+  - RecordWildCards
+  - TypeFamilies
 
 library:
   source-dirs: src
