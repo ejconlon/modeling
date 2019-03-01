@@ -1,6 +1,6 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE DuplicateRecordFields #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE Rank2Types #-}
 {-# LANGUAGE TypeFamilies #-}
 
@@ -8,7 +8,9 @@ module Modeling where
 
 import Data.Aeson
 import Data.Map (Map)
-import Data.Sequence (Seq)
+import qualified Data.Map as Map
+import Data.Sequence (Seq, fromList)
+import qualified Data.Sequence as Seq
 import Data.Text (Text)
 import GHC.Generics
 
@@ -21,7 +23,7 @@ data Type =
     | MapType Type
     | StructType (Map Text Type)
     | ReferenceType Text
-    deriving (Show, Eq)
+    deriving (Generic, Show, Eq)
 
 data GenericType = GenericType
     { name :: Text
@@ -59,22 +61,73 @@ type NamespacePart = Text
 type Namespace = Seq NamespacePart
 type ParamName = Text
 
+type DirectName = Text
+type SubName = Text
+
+type AttributeName = Text
+type AttributeValue = Text
+
 data Param = Param
     { namespace :: Namespace
     , name :: ParamName
-    } deriving (Show, Eq)
+    } deriving (Generic, Show, Eq)
 
-class DSL m t where
-    type InternalOp m
-    type InternalParam m
+data BaseOpts o p = BaseOpts
+    { namespace :: NamespacePart
+    , params :: Map ParamName p
+    , namedSubs :: Map SubName o
+    , unnamedSubs :: Seq o
+    } deriving (Generic)
 
-    externalParam :: ParamName -> m (InternalParam m)
+data SplitOpts = SplitOpts
+    { attribute :: AttributeName
+    , values :: Seq AttributeValue
+    , other :: Maybe AttributeValue
+    } deriving (Generic, Show, Eq)
 
-    build :: InternalOp m -> m t
+data ParamDSL p (m :: * -> *) = ParamDSL
+    { external :: ParamName -> Type -> m p
+    , internal :: Type -> m p
+    , literal :: Value -> m p
+    } deriving (Generic)
 
-type Builder m = forall t. DSL m t => m t
+-- ReaderT r m t
+type Builder r (m :: * -> *) t = r -> m t
 
-type Context m u = Builder m -> m u
+type Context r (m :: * -> *) t u = Builder r m t -> m u
+
+data BaseDSL r o p (m :: * -> *) t = BaseDSL
+    { direct :: BaseOpts o p -> DirectName -> m o
+    , embed :: BaseOpts o p -> Builder r m t -> m o
+    , build :: o -> m t
+    } deriving (Generic)
+
+data ExtDSL o (m :: * -> *) = ExtDSL
+    { serial :: Seq o -> m o
+    , split :: SplitOpts -> o -> m o
+    } deriving (Generic)
+
+data FullDSL o p m t = FullDSL
+    { param :: ParamDSL p m
+    , base :: BaseDSL (FullDSL o p m t) o p m t
+    , ext :: ExtDSL o m
+    } deriving (Generic)
+
+type FullBuilder o p m = forall t. Builder (FullDSL o p m t) m t
+
+simpleBuilder :: Monad m => FullBuilder o p m
+simpleBuilder dsl = undefined
+
+complexBuilder :: Monad m => FullBuilder o p m
+complexBuilder dsl = do
+    let firstOpts = BaseOpts "firstNs" Map.empty Map.empty Seq.empty
+    firstModel <- (direct (base dsl)) firstOpts "firstOp"
+    let secondOpts = BaseOpts "secondNs" Map.empty Map.empty Seq.empty
+    secondModel <- (embed (base dsl)) secondOpts simpleBuilder
+    serialModel <- (serial (ext dsl)) (fromList [firstModel, secondModel])
+    let splitOpts = SplitOpts { attribute = "region", values = fromList ["SFO", "LAX"], other = Just "OTHER" }
+    splitOp <- (split (ext dsl)) splitOpts serialModel
+    (build (base dsl)) splitOp
 
 main :: IO ()
 main = putStrLn "hello, world"
