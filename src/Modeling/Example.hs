@@ -7,6 +7,23 @@ import qualified Data.Map as Map
 import Data.Sequence (fromList)
 import qualified Data.Sequence as Seq
 import Modeling.Core
+import Modeling.Data
+import Modeling.Ext
+
+data FullOps d (m :: * -> *) t r = FullOps
+    { fullParamOps :: ParamOps d m
+    , fullBaseOps :: BaseOps d m t r
+    , fullExtOps :: ExtOps d m
+    }
+
+data PartialOps d (m :: * -> *) t r = PartialOps
+    { partialParamOps :: ParamOps d m
+    , partialBaseOps :: BaseOps d m t r
+    }
+
+fullToPartialOps :: Fix (FullOps d m t) -> Fix (PartialOps d m t)
+fullToPartialOps (Fix (FullOps {fullParamOps, fullBaseOps})) =
+    Fix (PartialOps fullParamOps (convertBaseOps fullToPartialOps fullBaseOps))
 
 simpleBuilder :: (r ~ Fix (PartialOps d m t), Monad m) => Builder r m t
 simpleBuilder = do
