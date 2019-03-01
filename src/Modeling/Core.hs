@@ -92,10 +92,10 @@ data SplitOpts = SplitOpts
     , other :: Maybe AttributeValue
     } deriving (Generic, Show, Eq)
 
-data ParamDSL d (m :: * -> *) = ParamDSL
-    { external :: ParamName -> Type -> m (IntParam d)
-    , internal :: Type -> m (IntParam d)
-    , literal :: Value -> m (IntParam d)
+data ParamOps d (m :: * -> *) = ParamOps
+    { externalOp :: ParamName -> Type -> m (IntParam d)
+    , internalOp :: Type -> m (IntParam d)
+    , literalOp :: Value -> m (IntParam d)
     }
 
 -- ReaderT r m t
@@ -103,34 +103,39 @@ type Builder r (m :: * -> *) t = ReaderT r m t
 
 type Context r (m :: * -> *) t u = Builder r m t -> m u
 
-data BaseDSL r d (m :: * -> *) t = BaseDSL
-    { direct :: BaseOpts d -> DirectName -> m (IntModel d)
-    , embed :: BaseOpts d -> Builder r m t -> m (IntModel d)
-    , build :: IntModel d -> m t
+data BaseOps r d (m :: * -> *) t = BaseOps
+    { directOp :: BaseOpts d -> DirectName -> m (IntModel d)
+    , embedOp :: BaseOpts d -> Builder r m t -> m (IntModel d)
+    , buildOp :: IntModel d -> m t
     }
 
-data ExtDSL d (m :: * -> *) = ExtDSL
-    { serial :: Seq (IntModel d) -> m (IntModel d)
-    , split :: SplitOpts -> (IntModel d) -> m (IntModel d)
+data ExtOps d (m :: * -> *) = ExtOps
+    { serialOp :: Seq (IntModel d) -> m (IntModel d)
+    , splitOp :: SplitOpts -> (IntModel d) -> m (IntModel d)
     }
 
-data FullDSL d (m :: * -> *) t = FullDSL
-    { param :: ParamDSL d m
-    , base :: BaseDSL (FullDSL d m t) d m t
-    , ext :: ExtDSL d m
+data FullOps d (m :: * -> *) t = FullOps
+    { paramOps :: ParamOps d m
+    , baseOps :: BaseOps (FullOps d m t) d m t
+    , extOps :: ExtOps d m
     }
 
-simpleBuilder :: (r ~ FullDSL d m t, MonadReader r m) => Builder r m t
-simpleBuilder = undefined
+simpleBuilder :: (r ~ FullOps d m t, MonadReader r m) => Builder r m t
+simpleBuilder = do
+    dsl <- ask
+    simpleParam <- lift ((externalOp (paramOps dsl)) "simpleExternalParam" StringType)
+    let simpleOpts = BaseOpts "simpleNs" (Map.singleton "simpleParamInternal" simpleParam) Map.empty Seq.empty
+    simpleModel <- lift ((directOp (baseOps dsl)) simpleOpts "simpleModel")
+    lift ((buildOp (baseOps dsl)) simpleModel)
 
-complexBuilder :: (r ~ FullDSL d m t, MonadReader r m) => Builder r m t
+complexBuilder :: (r ~ FullOps d m t, MonadReader r m) => Builder r m t
 complexBuilder = do
     dsl <- ask
     let firstOpts = BaseOpts "firstNs" Map.empty Map.empty Seq.empty
-    firstModel <- lift ((direct (base dsl)) firstOpts "firstOp")
+    firstModel <- lift ((directOp (baseOps dsl)) firstOpts "firstModel")
     let secondOpts = BaseOpts "secondNs" Map.empty Map.empty Seq.empty
-    secondModel <- lift ((embed (base dsl)) secondOpts simpleBuilder)
-    serialModel <- lift ((serial (ext dsl)) (fromList [firstModel, secondModel]))
+    secondModel <- lift ((embedOp (baseOps dsl)) secondOpts simpleBuilder)
+    serialModel <- lift ((serialOp (extOps dsl)) (fromList [firstModel, secondModel]))
     let splitOpts = SplitOpts { attribute = "region", values = fromList ["SFO", "LAX"], other = Just "OTHER" }
-    splitOp <- lift ((split (ext dsl)) splitOpts serialModel)
-    lift ((build (base dsl)) splitOp)
+    splitModel <- lift ((splitOp (extOps dsl)) splitOpts serialModel)
+    lift ((buildOp (baseOps dsl)) splitModel)
