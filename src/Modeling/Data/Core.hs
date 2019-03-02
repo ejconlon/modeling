@@ -22,16 +22,21 @@ data Type =
     | StringMapType Type
     | StructType (Map Text Type)
     | ReferenceType Text
+    | EnumType (Seq Text)
     deriving (Generic, Show, Eq)
 
 data ExtParam = ExtParam
-    { namespace :: Namespace
+    { ns :: Namespace
     , name :: ParamName
     , ty :: Type
     } deriving (Generic, Show, Eq)
 
-data Bundle a = Bundle
+data Interface = Interface
     { params :: Seq ExtParam
-    , typedefs :: Map Text Type
+    , tydefs :: Map Text Type
+    } deriving (Generic, Show, Eq)
+
+data Bundle a = Bundle
+    { interface :: Interface
     , root :: a
     } deriving (Generic, Show, Eq)

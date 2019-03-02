@@ -53,6 +53,8 @@ data Sum = Sum { name :: Text, attributes :: Maybe Value } deriving (Generic, Sh
 instance ToJSON Sum
 instance FromJSON Sum
 
+newtype Partial a = Partial { unPartial :: Either Sum a } deriving (Generic, Show, Eq)
+
 data SumInjectionError ne ae = SumNameError ne | SumAttributesError ae deriving (Generic, Eq, Show)
 
 sumInjection :: Injection ne n Text -> Injection ae a (n, Maybe Value) -> Injection (SumInjectionError ne ae) a Sum
