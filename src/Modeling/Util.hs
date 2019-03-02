@@ -3,6 +3,7 @@ module Modeling.Util where
 import Control.Monad ((>=>))
 import Data.Aeson
 import Data.Aeson.Types (Parser, parseEither)
+import qualified Data.HashMap.Strict as HM
 import Data.Map (Map)
 import Data.String (IsString, fromString)
 import Data.Text (Text)
@@ -48,16 +49,25 @@ injectionParseJSON render (Injection { invert }) v = do
         Right a -> pure a
         Left e -> fail (render e)
 
-data Sum = Sum { name :: Text, attributes :: Maybe Value } deriving (Generic, Show, Eq)
+data Sum a = Sum Text (Maybe a) deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
 
-instance ToJSON Sum
-instance FromJSON Sum
+instance ToJSON a => ToJSON (Sum a) where
+    toJSON (Sum n ma) = object (("name" .= n):(maybe [] (\a -> ["attributes" .= object [n .= a]]) ma))
 
-newtype Partial a = Partial { unPartial :: Either Sum a } deriving (Generic, Show, Eq)
+instance FromJSON a => FromJSON (Sum a) where
+    parseJSON = withObject "Sum" $ \v -> do
+        n <- v .: "name"
+        mo <- v .:? "attributes"
+        case mo of
+            Nothing -> pure (Sum n Nothing)
+            Just o ->
+                if HM.size o /= 1
+                    then fail ("Too many branches in sum for " <> T.unpack n)
+                    else Sum n <$> o .: n
 
 data SumInjectionError ne ae = SumNameError ne | SumAttributesError ae deriving (Generic, Eq, Show)
 
-sumInjection :: Injection ne n Text -> Injection ae a (n, Maybe Value) -> Injection (SumInjectionError ne ae) a Sum
+sumInjection :: Injection ne n Text -> Injection ae a (n, Maybe b) -> Injection (SumInjectionError ne ae) a (Sum b)
 sumInjection ninj ainj = Injection apl inv where
     apl a =
         let (n, mv) = (apply ainj) a
@@ -71,5 +81,5 @@ sumInjection ninj ainj = Injection apl inv where
                     Left ae -> Left (SumAttributesError ae)
                     Right a -> Right a
 
-simpleSumInjection :: Injection ae a (Text, Maybe Value) -> Injection (SumInjectionError Void ae) a Sum
+simpleSumInjection :: Injection ae a (Text, Maybe b) -> Injection (SumInjectionError Void ae) a (Sum b)
 simpleSumInjection = sumInjection idInjection
