@@ -9,7 +9,7 @@ import GHC.Generics (Generic)
 import Modeling.Data.Common
 import Modeling.Data.Util
 
-data MidTypeName =
+data TypeName =
       StringTypeName
     | LongTypeName
     | DoubleTypeName
@@ -22,8 +22,8 @@ data MidTypeName =
     | UnionTypeName
     deriving (Generic, Eq, Show)
 
-midTypeNameToText :: Injection ErrorMsg MidTypeName Text
-midTypeNameToText = Injection apply invert where
+typeNameToText :: Injection ErrorMsg TypeName Text
+typeNameToText = Injection apply invert where
     apply t =
         case t of
             StringTypeName -> "string"
@@ -50,75 +50,76 @@ midTypeNameToText = Injection apply invert where
             "union" -> Right UnionTypeName
             _ -> Left (ErrorMsg ("Unknown type name " <> u))
 
-instance ToJSON MidTypeName where
-    toJSON = injectionToJSON midTypeNameToText
+instance ToJSON TypeName where
+    toJSON = injectionToJSON typeNameToText
 
-instance FromJSON MidTypeName where
-    parseJSON = injectionParseJSON renderErrorMsg midTypeNameToText
+instance FromJSON TypeName where
+    parseJSON = injectionParseJSON renderErrorMsg typeNameToText
 
-data MidTypeSingleAttrs a = MidTypeSingleAttrs
+data TypeSingleAttrs a = TypeSingleAttrs
     { ty :: a
     } deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
 
-instance ToJSON a => ToJSON (MidTypeSingleAttrs a)
-instance FromJSON a => FromJSON (MidTypeSingleAttrs a)
+instance ToJSON a => ToJSON (TypeSingleAttrs a)
+instance FromJSON a => FromJSON (TypeSingleAttrs a)
 
-data MidTypeReferenceAttrs = MidTypeReferenceAttrs
+data TypeReferenceAttrs = TypeReferenceAttrs
     { name :: Text
     } deriving (Generic, Show, Eq)
 
-instance ToJSON MidTypeReferenceAttrs
-instance FromJSON MidTypeReferenceAttrs
+instance ToJSON TypeReferenceAttrs
+instance FromJSON TypeReferenceAttrs
 
-data MidTypeStructAttrs a = MidTypeStructAttrs
+data TypeStructAttrs a = TypeStructAttrs
     { fields :: Map Text a
     } deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
 
-instance ToJSON a => ToJSON (MidTypeStructAttrs a)
-instance FromJSON a => FromJSON (MidTypeStructAttrs a)
+instance ToJSON a => ToJSON (TypeStructAttrs a)
+instance FromJSON a => FromJSON (TypeStructAttrs a)
 
-data MidTypeEnumAttrs = MidTypeEnumAttrs
+data TypeEnumAttrs = TypeEnumAttrs
     { values :: Seq Text
     } deriving (Generic, Show, Eq)
 
-instance ToJSON MidTypeEnumAttrs
-instance FromJSON MidTypeEnumAttrs
+instance ToJSON TypeEnumAttrs
+instance FromJSON TypeEnumAttrs
 
-data MidTypeUnionAttrs a = MidTypeUnionAttrs
+data TypeUnionAttrs a = TypeUnionAttrs
     { elements :: Map Text a
     } deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
 
-instance ToJSON a => ToJSON (MidTypeUnionAttrs a)
-instance FromJSON a => FromJSON (MidTypeUnionAttrs a)
+instance ToJSON a => ToJSON (TypeUnionAttrs a)
+instance FromJSON a => FromJSON (TypeUnionAttrs a)
 
-data MidTypeAttrs a = MidTypeAttrs
-    { optional :: Maybe (MidTypeSingleAttrs a)
-    , list :: Maybe (MidTypeSingleAttrs a)
-    , stringmap :: Maybe (MidTypeSingleAttrs a)
-    , struct :: Maybe (MidTypeStructAttrs a)
-    , reference :: Maybe MidTypeReferenceAttrs
-    , enum :: Maybe MidTypeEnumAttrs
-    , union :: Maybe (MidTypeUnionAttrs a)
+data TypeAttrs a = TypeAttrs
+    { optional :: Maybe (TypeSingleAttrs a)
+    , list :: Maybe (TypeSingleAttrs a)
+    , stringmap :: Maybe (TypeSingleAttrs a)
+    , struct :: Maybe (TypeStructAttrs a)
+    , reference :: Maybe TypeReferenceAttrs
+    , enum :: Maybe TypeEnumAttrs
+    , union :: Maybe (TypeUnionAttrs a)
     } deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
 
-emptyMidTypeAttrs :: MidTypeAttrs a
-emptyMidTypeAttrs = MidTypeAttrs Nothing Nothing Nothing Nothing Nothing Nothing Nothing
+emptyTypeAttrs :: TypeAttrs a
+emptyTypeAttrs = TypeAttrs Nothing Nothing Nothing Nothing Nothing Nothing Nothing
 
-instance ToJSON a => ToJSON (MidTypeAttrs a)
-instance FromJSON a => FromJSON (MidTypeAttrs a)
+instance ToJSON a => ToJSON (TypeAttrs a)
+instance FromJSON a => FromJSON (TypeAttrs a)
 
-data MidType = MidType
-    { name :: MidTypeName
-    , attributes :: Maybe (MidTypeAttrs MidType)
+data TypeShim = TypeShim
+    { name :: TypeName
+    , attributes :: Maybe (TypeAttrs TypeShim)
     } deriving (Generic, Show, Eq)
 
-instance ToJSON MidType
-instance FromJSON MidType
+instance ToJSON TypeShim
+instance FromJSON TypeShim
 
--- midTypePairInjection :: Injection ErrorMsg MidType (MidTypeName, Maybe (MidTypeAttrs MidType))
--- midTypePairInjection = Injection apl inv where
---     apl (MidType tn ma) = (tn, ma)
---     inv (n, ma) = MidType n <$> f ma where
+-- NOTE: Dont need to do this here, we're not guaranteeing that the shim is correct
+-- typeShimPairInjection :: Injection ErrorMsg TypeShim (TypeName, Maybe (TypeAttrs TypeShim))
+-- typeShimPairInjection = Injection apl inv where
+--     apl (TypeShim tn ma) = (tn, ma)
+--     inv (n, ma) = TypeShim n <$> f ma where
 --         f = case n of
 --             StringTypeName -> simpleWithoutAttrs
 --             LongTypeName -> simpleWithoutAttrs
@@ -131,10 +132,10 @@ instance FromJSON MidType
 --             EnumTypeName -> simpleWithAttrs enum
 --             UnionTypeName -> simpleWithAttrs union
 
-midTypePairInjection :: Injection e MidType (MidTypeName, Maybe (MidTypeAttrs MidType))
-midTypePairInjection = Injection apl inv where
-    apl (MidType tn ma) = (tn, ma)
-    inv (n, ma) = Right (MidType n ma)
+typeShimPairBijection :: Bijection TypeShim (TypeName, Maybe (TypeAttrs TypeShim))
+typeShimPairBijection = Bijection apl inv where
+    apl (TypeShim tn ma) = (tn, ma)
+    inv (n, ma) = TypeShim n ma
 
-midTypeSumInjection :: Injection SumErrorMsg MidType (Sum (MidTypeAttrs MidType))
-midTypeSumInjection = sumInjection midTypeNameToText midTypePairInjection
+typeShimSumInjection :: Injection ErrorMsg TypeShim (Sum (TypeAttrs TypeShim))
+typeShimSumInjection = sumInjection' typeNameToText typeShimPairBijection

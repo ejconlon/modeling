@@ -24,7 +24,7 @@ composeBijection (Bijection apl1 inv1) (Bijection apl2 inv2) = Bijection (apl1 .
 flipBijection :: Bijection a b -> Bijection b a
 flipBijection (Bijection apl inv) = Bijection inv apl
 
-lowerBijection :: Bijection a b -> Injection e a b
+lowerBijection :: Bijection a b -> Injection Void a b
 lowerBijection (Bijection apl inv) = Injection apl (Right . inv)
 
 data Injection e a b = Injection { injApply :: a -> b, injInvert :: b -> Either e a }
@@ -84,6 +84,9 @@ instance FromJSON a => FromJSON (Sum a) where
 
 data SumInjectionError ne ae = SumNameError ne | SumAttributesError ae deriving (Generic, Eq, Show)
 
+onlyNameError :: SumInjectionError ne Void -> ne
+onlyNameError (SumNameError ne) = ne
+
 sumInjection :: Injection ne n Text -> Injection ae a (n, Maybe b) -> Injection (SumInjectionError ne ae) a (Sum b)
 sumInjection ninj ainj = Injection apl inv where
     apl a =
@@ -97,6 +100,9 @@ sumInjection ninj ainj = Injection apl inv where
                 case (injInvert ainj) (n, mv) of
                     Left ae -> Left (SumAttributesError ae)
                     Right a -> Right a
+
+sumInjection' :: Injection ne n Text -> Bijection a (n, Maybe b) -> Injection ne a (Sum b)
+sumInjection' ninj abij = injectionMapError onlyNameError (sumInjection ninj (lowerBijection abij))
 
 simpleSumInjection :: Injection ae a (Text, Maybe b) -> Injection (SumInjectionError Void ae) a (Sum b)
 simpleSumInjection = sumInjection idInjection
