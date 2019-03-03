@@ -185,7 +185,9 @@ typeFixBijection :: Bijection (Type (Fix Type)) TypeFix
 typeFixBijection = Bijection fixType (unFix . unTypeFix)
 
 typeFixInjection :: Injection ErrorMsg TypeFix TypeSumFix
-typeFixInjection = undefined
+typeFixInjection =
+    let knot = typeSumInjection (bothFixInjection knot)
+    in composeRight (composeLeft typeSumFixBijection knot) (flipBijection typeFixBijection)
 
 instance ToJSON TypeFix where
     toJSON = injectionToJSON typeFixInjection
