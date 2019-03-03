@@ -7,7 +7,7 @@ import Data.Map (Map)
 import Data.Sequence (Seq)
 import Data.Text (Text)
 import Modeling.Data.Common
-import Modeling.Data.Core
+import Modeling.Data.Type
 
 type DirectName = Text
 type SubName = Text

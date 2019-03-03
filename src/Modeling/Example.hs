@@ -6,7 +6,7 @@ import Data.Fix (Fix (..))
 import qualified Data.Map as Map
 import Data.Sequence (fromList)
 import qualified Data.Sequence as Seq
-import Modeling.Data.Core
+import Modeling.Data.Type
 import Modeling.Ops.Core
 import Modeling.Ops.Ext
 

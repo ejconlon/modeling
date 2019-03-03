@@ -2,7 +2,6 @@ module Modeling.Data.Adapt where
 
 import Data.Aeson
 import Modeling.Data.Core
-import Modeling.Data.MidType
 import Modeling.Data.Util
 
 instance ToJSON ExtParam
