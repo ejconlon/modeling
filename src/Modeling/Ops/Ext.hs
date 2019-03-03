@@ -3,7 +3,7 @@ module Modeling.Ops.Ext where
 import Data.Sequence (Seq)
 import Data.Text (Text)
 import GHC.Generics (Generic)
-import Modeling.Data.Core
+import Modeling.Data.Common
 import Modeling.Ops.Core
 
 type AttributeName = Text

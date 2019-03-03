@@ -3,7 +3,7 @@ module Modeling.Data.Adapt where
 import Data.Aeson
 import Modeling.Data.Core
 import Modeling.Data.Mid
-import Modeling.Util
+import Modeling.Data.Util
 
 missingAttrs, unexpectedAttrs :: ErrorMsg
 missingAttrs = ErrorMsg "Missing attrs"
@@ -47,3 +47,12 @@ instance ToJSON Type where
 
 instance FromJSON Type where
     parseJSON = injectionParseJSON renderErrorMsg typeMidInjection
+
+instance ToJSON ExtParam
+instance FromJSON ExtParam
+
+instance ToJSON Interface
+instance FromJSON Interface
+
+instance ToJSON a => ToJSON (Bundle a)
+instance FromJSON a => FromJSON (Bundle a)

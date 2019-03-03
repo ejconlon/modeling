@@ -1,4 +1,4 @@
-module Modeling.Util where
+module Modeling.Data.Util where
 
 import Control.Monad ((>=>))
 import Data.Aeson

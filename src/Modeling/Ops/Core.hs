@@ -6,6 +6,7 @@ import Data.Fix (Fix (..))
 import Data.Map (Map)
 import Data.Sequence (Seq)
 import Data.Text (Text)
+import Modeling.Data.Common
 import Modeling.Data.Core
 
 type DirectName = Text

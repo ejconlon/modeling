@@ -6,8 +6,8 @@ import Data.Sequence (Seq)
 import Data.Text (Text)
 import qualified Data.Text as T
 import GHC.Generics (Generic)
-import Modeling.Data.Core
-import Modeling.Util
+import Modeling.Data.Common
+import Modeling.Data.Util
 
 data MidTypeName =
       StringTypeName
