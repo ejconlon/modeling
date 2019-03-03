@@ -29,7 +29,6 @@ typeMidInjection = Injection apl inv where
             ReferenceType name -> MidType ReferenceTypeName (Just (emptyMidTypeAttrs { reference = Just (MidTypeReferenceAttrs name) }))
             EnumType values -> MidType EnumTypeName (Just (emptyMidTypeAttrs { enum = Just (MidTypeEnumAttrs values) }))
             UnionType branches -> MidType UnionTypeName (Just (emptyMidTypeAttrs { union = Just (MidTypeUnionAttrs (apl <$> branches)) }))
-    -- inv = undefined
     inv (MidType n ma) =
         case n of
             StringTypeName -> withoutAttrs ma StringType
