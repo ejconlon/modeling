@@ -31,7 +31,20 @@ data Interface = Interface
     , tydefs :: Map Text Type
     } deriving (Generic, Show, Eq)
 
-data Bundle a = Bundle
+data ModelConnection = ModelConnection
+    {
+    } deriving (Generic, Show, Eq)
+
+data Model = Model
+    {
+    } deriving (Generic, Show, Eq)
+
+data ModelSpace = ModelSpace
+    { connection :: ModelConnection
+    , model :: Model
+    } deriving (Generic, Show, Eq)
+
+data Bundle = Bundle
     { interface :: Interface
-    , root :: a
+    , root :: ModelSpace
     } deriving (Generic, Show, Eq)

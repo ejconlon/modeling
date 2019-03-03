@@ -100,3 +100,21 @@ sumInjection ninj ainj = Injection apl inv where
 
 simpleSumInjection :: Injection ae a (Text, Maybe b) -> Injection (SumInjectionError Void ae) a (Sum b)
 simpleSumInjection = sumInjection idInjection
+
+type SumErrorMsg = SumInjectionError ErrorMsg ErrorMsg
+
+missingAttrs, unexpectedAttrs :: ErrorMsg
+missingAttrs = ErrorMsg "Missing attrs"
+unexpectedAttrs = ErrorMsg "Unexpected attrs"
+
+simpleWithoutAttrs :: Maybe a -> Either ErrorMsg (Maybe a)
+simpleWithoutAttrs ma = case ma of { Nothing -> Right Nothing; Just _ -> Left unexpectedAttrs }
+
+simpleWithAttrs :: (a -> Maybe b) -> Maybe a -> Either ErrorMsg (Maybe a)
+simpleWithAttrs s ma = case (ma >>= s) of { Nothing -> Left missingAttrs; Just _ -> Right ma }
+
+withoutAttrs :: b -> Maybe a -> Either ErrorMsg b
+withoutAttrs y ma = case ma of { Nothing -> pure y; Just _ -> Left unexpectedAttrs }
+
+withAttrs :: (a -> Maybe v) -> (v -> Either ErrorMsg b) -> Maybe a -> Either ErrorMsg b
+withAttrs s f ma = case (ma >>= s) of { Nothing -> Left missingAttrs; Just x -> f x }

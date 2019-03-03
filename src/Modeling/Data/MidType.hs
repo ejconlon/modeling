@@ -114,3 +114,27 @@ data MidType = MidType
 
 instance ToJSON MidType
 instance FromJSON MidType
+
+-- midTypePairInjection :: Injection ErrorMsg MidType (MidTypeName, Maybe (MidTypeAttrs MidType))
+-- midTypePairInjection = Injection apl inv where
+--     apl (MidType tn ma) = (tn, ma)
+--     inv (n, ma) = MidType n <$> f ma where
+--         f = case n of
+--             StringTypeName -> simpleWithoutAttrs
+--             LongTypeName -> simpleWithoutAttrs
+--             DoubleTypeName -> simpleWithoutAttrs
+--             OptionalTypeName -> simpleWithAttrs optional
+--             ListTypeName -> simpleWithAttrs list
+--             StringMapTypeName -> simpleWithAttrs stringmap
+--             StructTypeName -> simpleWithAttrs struct
+--             ReferenceTypeName -> simpleWithAttrs reference
+--             EnumTypeName -> simpleWithAttrs enum
+--             UnionTypeName -> simpleWithAttrs union
+
+midTypePairInjection :: Injection e MidType (MidTypeName, Maybe (MidTypeAttrs MidType))
+midTypePairInjection = Injection apl inv where
+    apl (MidType tn ma) = (tn, ma)
+    inv (n, ma) = Right (MidType n ma)
+
+midTypeSumInjection :: Injection SumErrorMsg MidType (Sum (MidTypeAttrs MidType))
+midTypeSumInjection = sumInjection midTypeNameToText midTypePairInjection
