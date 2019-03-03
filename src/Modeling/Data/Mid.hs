@@ -9,7 +9,6 @@ import GHC.Generics (Generic)
 import Modeling.Data.Core
 import Modeling.Util
 
--- TODO This is probably overkill
 data MidTypeName =
       StringTypeName
     | LongTypeName
@@ -51,18 +50,18 @@ midTypeNameToText = Injection apply invert where
             "union" -> Right UnionTypeName
             _ -> Left (ErrorMsg ("Unknown type name " <> u))
 
--- instance ToJSON MidTypeName where
---     toJSON = injectionToJSON midTypeNameToText
+instance ToJSON MidTypeName where
+    toJSON = injectionToJSON midTypeNameToText
 
--- instance FromJSON MidTypeName where
---     parseJSON = injectionParseJSON midTypeNameToText
+instance FromJSON MidTypeName where
+    parseJSON = injectionParseJSON renderErrorMsg midTypeNameToText
 
-data MidTypeSingleAttrs = MidTypeSingleAttrs
-    { ty :: MidType
-    } deriving (Generic, Show, Eq)
+data MidTypeSingleAttrs a = MidTypeSingleAttrs
+    { ty :: a
+    } deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
 
-instance ToJSON MidTypeSingleAttrs
-instance FromJSON MidTypeSingleAttrs
+instance ToJSON a => ToJSON (MidTypeSingleAttrs a)
+instance FromJSON a => FromJSON (MidTypeSingleAttrs a)
 
 data MidTypeReferenceAttrs = MidTypeReferenceAttrs
     { name :: Text
@@ -71,12 +70,12 @@ data MidTypeReferenceAttrs = MidTypeReferenceAttrs
 instance ToJSON MidTypeReferenceAttrs
 instance FromJSON MidTypeReferenceAttrs
 
-data MidTypeStructAttrs = MidTypeStructAttrs
-    { fields :: Map Text MidType
-    } deriving (Generic, Show, Eq)
+data MidTypeStructAttrs a = MidTypeStructAttrs
+    { fields :: Map Text a
+    } deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
 
-instance ToJSON MidTypeStructAttrs
-instance FromJSON MidTypeStructAttrs
+instance ToJSON a => ToJSON (MidTypeStructAttrs a)
+instance FromJSON a => FromJSON (MidTypeStructAttrs a)
 
 data MidTypeEnumAttrs = MidTypeEnumAttrs
     { values :: Seq Text
@@ -85,29 +84,32 @@ data MidTypeEnumAttrs = MidTypeEnumAttrs
 instance ToJSON MidTypeEnumAttrs
 instance FromJSON MidTypeEnumAttrs
 
-data MidTypeUnionAttrs = MidTypeUnionAttrs
-    { elements :: Map Text MidType
-    } deriving (Generic, Show, Eq)
+data MidTypeUnionAttrs a = MidTypeUnionAttrs
+    { elements :: Map Text a
+    } deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
 
-instance ToJSON MidTypeUnionAttrs
-instance FromJSON MidTypeUnionAttrs
+instance ToJSON a => ToJSON (MidTypeUnionAttrs a)
+instance FromJSON a => FromJSON (MidTypeUnionAttrs a)
 
-data MidTypeAttrs = MidTypeAttrs
-    { optional :: Maybe MidTypeSingleAttrs
-    , list :: Maybe MidTypeSingleAttrs
-    , stringmap :: Maybe MidTypeSingleAttrs
-    , struct :: Maybe (Map Text MidType)
+data MidTypeAttrs a = MidTypeAttrs
+    { optional :: Maybe (MidTypeSingleAttrs a)
+    , list :: Maybe (MidTypeSingleAttrs a)
+    , stringmap :: Maybe (MidTypeSingleAttrs a)
+    , struct :: Maybe (MidTypeStructAttrs a)
     , reference :: Maybe MidTypeReferenceAttrs
     , enum :: Maybe MidTypeEnumAttrs
-    , union :: Maybe MidTypeUnionAttrs
-    } deriving (Generic, Show, Eq)
+    , union :: Maybe (MidTypeUnionAttrs a)
+    } deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
 
-instance ToJSON MidTypeAttrs
-instance FromJSON MidTypeAttrs
+emptyMidTypeAttrs :: MidTypeAttrs a
+emptyMidTypeAttrs = MidTypeAttrs Nothing Nothing Nothing Nothing Nothing Nothing Nothing
+
+instance ToJSON a => ToJSON (MidTypeAttrs a)
+instance FromJSON a => FromJSON (MidTypeAttrs a)
 
 data MidType = MidType
-    { name :: Text
-    , attributes :: Maybe MidTypeAttrs
+    { name :: MidTypeName
+    , attributes :: Maybe (MidTypeAttrs MidType)
     } deriving (Generic, Show, Eq)
 
 instance ToJSON MidType
@@ -139,6 +141,12 @@ midModelNameToText = Injection apply invert where
             "split" -> Right SplitModelName
             _ -> Left (ErrorMsg ("Unknown model name " <> u))
 
+instance ToJSON MidModelName where
+    toJSON = injectionToJSON midModelNameToText
+
+instance FromJSON MidModelName where
+    parseJSON = injectionParseJSON renderErrorMsg midModelNameToText
+
 data MidModelDirectAttrs = MidModelDirectAttrs
     {
     } deriving (Generic, Show, Eq)
@@ -146,16 +154,16 @@ data MidModelDirectAttrs = MidModelDirectAttrs
 instance ToJSON MidModelDirectAttrs
 instance FromJSON MidModelDirectAttrs
 
-data MidModelAttrs = MidModelAttrs
+data MidModelAttrs a = MidModelAttrs
     { direct :: MidModelDirectAttrs
-    } deriving (Generic, Show, Eq)
+    } deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
 
-instance ToJSON MidModelAttrs
-instance FromJSON MidModelAttrs
+instance ToJSON a => ToJSON (MidModelAttrs a)
+instance FromJSON a => FromJSON (MidModelAttrs a)
 
 data MidModel = MidModel
-    { name :: Text
-    , attributes :: Maybe MidModelAttrs
+    { name :: MidModelName
+    , attributes :: Maybe (MidModelAttrs MidModel)
     } deriving (Generic, Show, Eq)
 
 instance ToJSON MidModel
@@ -163,6 +171,10 @@ instance FromJSON MidModel
 
 data MidModelSpace = MidModelSpace
     { nspart :: NamespacePart
+    -- bring ns back into the fold - want total freedom to rewrite models which includes
+    -- supporting model types we don't know about yet. so need to be able to map params, load models etc
+    -- not just for direct models.  direct becomes just { "direct" : { "name": "xyz" } }
+    -- The space around it is { "metadata": {"ns": .., "params": ...}, "model":  }
     , model :: MidModel
     } deriving (Generic, Show, Eq)
 

@@ -23,6 +23,7 @@ data Type =
     | StructType (Map Text Type)
     | ReferenceType Text
     | EnumType (Seq Text)
+    | UnionType (Map Text Type)
     deriving (Generic, Show, Eq)
 
 data ExtParam = ExtParam
