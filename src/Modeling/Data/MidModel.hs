@@ -1,13 +1,15 @@
 module Modeling.Data.MidModel where
 
 import Data.Aeson
+import Data.Map (Map)
+import Data.Sequence (Seq)
 import Data.Text (Text)
 import GHC.Generics (Generic)
 import Modeling.Data.Common
 import Modeling.Data.Util
 
 data MidModelName =
-    DirectModelName
+      DirectModelName
     | SerialModelName
     | ParallelModelName
     | AdaptorModelName
@@ -39,7 +41,7 @@ instance FromJSON MidModelName where
     parseJSON = injectionParseJSON renderErrorMsg midModelNameToText
 
 data MidModelDirectAttrs = MidModelDirectAttrs
-    {
+    { name :: Text
     } deriving (Generic, Show, Eq)
 
 instance ToJSON MidModelDirectAttrs
@@ -52,22 +54,27 @@ data MidModelAttrs a = MidModelAttrs
 instance ToJSON a => ToJSON (MidModelAttrs a)
 instance FromJSON a => FromJSON (MidModelAttrs a)
 
-data MidModel = MidModel
+data MidModel a = MidModel
     { name :: MidModelName
-    , attributes :: Maybe (MidModelAttrs MidModel)
+    , attributes :: Maybe (MidModelAttrs a)
     } deriving (Generic, Show, Eq)
 
-instance ToJSON MidModel
-instance FromJSON MidModel
+instance ToJSON a => ToJSON (MidModel a)
+instance FromJSON a => FromJSON (MidModel a)
 
-data MidModelSpace = MidModelSpace
+data MidModelConnection a = MidModelConnection
     { nspart :: NamespacePart
-    -- bring ns back into the fold - want total freedom to rewrite models which includes
-    -- supporting model types we don't know about yet. so need to be able to map params, load models etc
-    -- not just for direct models.  direct becomes just { "direct" : { "name": "xyz" } }
-    -- The space around it is { "metadata": {"ns": .., "params": ...}, "model":  }
-    , model :: MidModel
+    , namedModels :: Map Text a
+    , additionalModels :: Seq a
+    } deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
+
+instance ToJSON a => ToJSON (MidModelConnection a)
+instance FromJSON a => FromJSON (MidModelConnection a)
+
+data MidModelSpace a = MidModelSpace
+    { connection :: MidModelConnection a
+    , model :: MidModel a
     } deriving (Generic, Show, Eq)
 
-instance ToJSON MidModelSpace
-instance FromJSON MidModelSpace
+instance ToJSON a => ToJSON (MidModelSpace a)
+instance FromJSON a => FromJSON (MidModelSpace a)
