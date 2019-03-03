@@ -66,13 +66,16 @@ instance ToJSON a => ToJSON (ModelSplitAttrs a)
 instance FromJSON a => FromJSON (ModelSplitAttrs a)
 
 data ModelAttrs a = ModelAttrs
-    { direct :: ModelDirectAttrs
-    , serial :: ModelSerialAttrs a
-    , split :: ModelSplitAttrs a
+    { direct :: Maybe (ModelDirectAttrs)
+    , serial :: Maybe (ModelSerialAttrs a)
+    , split :: Maybe (ModelSplitAttrs a)
     } deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
 
 instance ToJSON a => ToJSON (ModelAttrs a)
 instance FromJSON a => FromJSON (ModelAttrs a)
+
+emptyModelAttrs :: ModelAttrs a
+emptyModelAttrs = ModelAttrs Nothing Nothing Nothing
 
 data ModelSum a = ModelSum
     { name :: ModelName
@@ -82,8 +85,32 @@ data ModelSum a = ModelSum
 instance ToJSON a => ToJSON (ModelSum a)
 instance FromJSON a => FromJSON (ModelSum a)
 
+modelSumPairBijection :: Bijection (ModelSum a) (ModelName, Maybe (ModelAttrs a))
+modelSumPairBijection = Bijection apl inv where
+    apl (ModelSum tn ma) = (tn, ma)
+    inv (n, ma) = ModelSum n ma
+
+modelSumSumInjection :: Injection ErrorMsg (ModelSum a) (Sum (ModelAttrs a))
+modelSumSumInjection = domainInjection' modelNameToText modelSumPairBijection
+
 data Model a =
       DirectModel ModelDirectAttrs
     | SerialModel (ModelSerialAttrs a)
     | SplitModel (ModelSplitAttrs a)
     deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
+
+modelPairInjection :: Injection ErrorMsg (Model a) (ModelName, Maybe (ModelAttrs a))
+modelPairInjection = Injection apl inv where
+    apl t =
+        case t of
+            DirectModel attrs -> (DirectModelName, Just (emptyModelAttrs { direct = Just attrs }))
+            SerialModel attrs -> (SplitModelName, Just (emptyModelAttrs { serial = Just attrs }))
+            SplitModel attrs -> (SplitModelName, Just (emptyModelAttrs { split = Just attrs }))
+    inv (n, ma) = f ma where
+        f = case n of
+            DirectModelName -> withAttrs direct DirectModel
+            SerialModelName -> withAttrs serial SerialModel
+            SplitModelName -> withAttrs split SplitModel
+
+modelSumInjection :: Injection ErrorMsg a b -> Injection ErrorMsg (Model a) (ModelSum b)
+modelSumInjection rinj = composeInjection (postTraverseInjection rinj (lowerBijection (flipBijection modelSumPairBijection))) modelPairInjection
