@@ -5,6 +5,7 @@ import Data.Map (Map)
 import Data.Sequence (Seq)
 import Data.Text (Text)
 import GHC.Generics (Generic)
+import Modeling.Data.Bidi
 import Modeling.Data.Common
 import Modeling.Data.Util
 
@@ -47,8 +48,27 @@ data ModelDirectAttrs = ModelDirectAttrs
 instance ToJSON ModelDirectAttrs
 instance FromJSON ModelDirectAttrs
 
+data ModelSerialAttrs a = ModelSerialAttrs
+    { models :: Seq a
+    } deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
+
+instance ToJSON a => ToJSON (ModelSerialAttrs a)
+instance FromJSON a => FromJSON (ModelSerialAttrs a)
+
+data ModelSplitAttrs a = ModelSplitAttrs
+    { attribute :: Text
+    , values :: Seq Text
+    , other :: Maybe Text
+    , model :: a
+    } deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
+
+instance ToJSON a => ToJSON (ModelSplitAttrs a)
+instance FromJSON a => FromJSON (ModelSplitAttrs a)
+
 data ModelAttrs a = ModelAttrs
     { direct :: ModelDirectAttrs
+    , serial :: ModelSerialAttrs a
+    , split :: ModelSplitAttrs a
     } deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
 
 instance ToJSON a => ToJSON (ModelAttrs a)
@@ -57,7 +77,13 @@ instance FromJSON a => FromJSON (ModelAttrs a)
 data ModelSum a = ModelSum
     { name :: ModelName
     , attributes :: Maybe (ModelAttrs a)
-    } deriving (Generic, Show, Eq)
+    } deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
 
 instance ToJSON a => ToJSON (ModelSum a)
 instance FromJSON a => FromJSON (ModelSum a)
+
+data Model a =
+      DirectModel ModelDirectAttrs
+    | SerialModel (ModelSerialAttrs a)
+    | SplitModel (ModelSplitAttrs a)
+    deriving (Generic, Show, Eq, Functor, Foldable, Traversable)

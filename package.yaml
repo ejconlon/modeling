@@ -15,8 +15,6 @@ dependencies:
 - base >= 4.11 && < 5
 - aeson
 - containers
-- data-fix
-- data-has
 - lens
 - mtl
 - text

@@ -1,6 +1,5 @@
 module Modeling.Data.Util where
 
-import Control.Monad ((>=>))
 import Data.Aeson
 import Data.Aeson.Types (Parser, parseEither)
 import qualified Data.HashMap.Strict as HM
@@ -10,38 +9,8 @@ import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Void (Void)
 import GHC.Generics (Generic)
-
--- TODO these are probably better expressed with prisms and isos
-
-data Bijection a b = Bijection { biApply :: a -> b, biInvert :: b -> a }
-
-idBijection :: Bijection a a
-idBijection = Bijection id id
-
-composeBijection :: Bijection b c -> Bijection a b -> Bijection a c
-composeBijection (Bijection apl1 inv1) (Bijection apl2 inv2) = Bijection (apl1 . apl2) (inv2 . inv1)
-
-flipBijection :: Bijection a b -> Bijection b a
-flipBijection (Bijection apl inv) = Bijection inv apl
-
-lowerBijection :: Bijection a b -> Injection Void a b
-lowerBijection (Bijection apl inv) = Injection apl (Right . inv)
-
-data Injection e a b = Injection { injApply :: a -> b, injInvert :: b -> Either e a }
-
--- Category without the id conflict
-idInjection :: Injection e a a
-idInjection = Injection id Right
-
-composeInjection :: Injection e b c -> Injection e a b -> Injection e a c
-composeInjection (Injection apl1 inv1) (Injection apl2 inv2) = Injection (apl1 . apl2) (inv1 >=> inv2)
-
-injectionMapError :: (e -> e') -> Injection e a b -> Injection e' a b
-injectionMapError f (Injection apl oldInv) = Injection apl newInv where
-    newInv b =
-        case oldInv b of
-            Left e -> Left (f e)
-            Right a -> Right a
+import Modeling.Data.Bidi
+import Modeling.Data.Fix
 
 -- Aeson errors are stringy
 newtype ErrorMsg = ErrorMsg { unErrorMsg :: Text } deriving (Show, Eq, IsString)
@@ -105,7 +74,7 @@ domainInjection ninj ainj = Injection apl inv where
                     Right a -> Right a
 
 domainInjection' :: Injection ne n Text -> Bijection a (n, Maybe b) -> Injection ne a (Sum b)
-domainInjection' ninj abij = injectionMapError onlyNameError (domainInjection ninj (lowerBijection abij))
+domainInjection' ninj abij = injectionMapError onlyNameError (domainInjection ninj (voidBijection abij))
 
 simpleDomainInjection :: Injection ae a (Text, Maybe b) -> Injection ae a (Sum b)
 simpleDomainInjection = injectionMapError onlyAttributesError . domainInjection idInjection
@@ -125,8 +94,8 @@ simpleWithAttrs s ma = case (ma >>= s) of { Nothing -> Left missingAttrs; Just _
 withoutAttrs :: b -> Maybe a -> Either ErrorMsg b
 withoutAttrs y ma = case ma of { Nothing -> pure y; Just _ -> Left unexpectedAttrs }
 
-withAttrs :: (a -> Maybe v) -> (v -> Either ErrorMsg b) -> Maybe a -> Either ErrorMsg b
-withAttrs s f ma = case (ma >>= s) of { Nothing -> Left missingAttrs; Just x -> f x }
+withAttrs :: (a -> Maybe v) -> (v -> b) -> Maybe a -> Either ErrorMsg b
+withAttrs s f ma = case (ma >>= s) of { Nothing -> Left missingAttrs; Just x -> Right (f x) }
 
 sumInjection :: Injection e a Value -> Injection e (Sum a) (Sum Value)
 sumInjection (Injection vapl vinv) = Injection apl inv where

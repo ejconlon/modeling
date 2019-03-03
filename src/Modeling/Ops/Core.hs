@@ -2,7 +2,6 @@ module Modeling.Ops.Core where
 
 import Control.Monad.Reader (ReaderT, withReaderT)
 import Data.Aeson (Value)
-import Data.Fix (Fix (..))
 import Data.Map (Map)
 import Data.Sequence (Seq)
 import Data.Text (Text)
@@ -22,8 +21,8 @@ data BaseOpts d = BaseOpts
     }
 
 data ParamOps d (m :: * -> *) = ParamOps
-    { externalOp :: Namespace -> ParamName -> Type -> m (IntParam d)
-    , internalOp :: Type -> m (IntParam d)
+    { externalOp :: Namespace -> ParamName -> TypeFix -> m (IntParam d)
+    , internalOp :: TypeFix -> m (IntParam d)
     , literalOp :: Value -> m (IntParam d)
     }
 

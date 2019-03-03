@@ -6,6 +6,8 @@ import Data.Sequence (Seq)
 import Data.Text (Text)
 import qualified Data.Text as T
 import GHC.Generics (Generic)
+import Modeling.Data.Bidi
+import Modeling.Data.Fix
 import Modeling.Data.Common
 import Modeling.Data.Util
 
@@ -107,81 +109,86 @@ emptyTypeAttrs = TypeAttrs Nothing Nothing Nothing Nothing Nothing Nothing Nothi
 instance ToJSON a => ToJSON (TypeAttrs a)
 instance FromJSON a => FromJSON (TypeAttrs a)
 
-data TypeSum = TypeSum
+data TypeSum a = TypeSum
     { name :: TypeName
-    , attributes :: Maybe (TypeAttrs TypeSum)
-    } deriving (Generic, Show, Eq)
+    , attributes :: Maybe (TypeAttrs a)
+    } deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
 
-instance ToJSON TypeSum
-instance FromJSON TypeSum
+instance ToJSON a => ToJSON (TypeSum a)
+instance FromJSON a => FromJSON (TypeSum a)
 
--- NOTE: Dont need to do this here, we're not guaranteeing that the Sum is correct
--- typeSumPairInjection :: Injection ErrorMsg TypeSum (TypeName, Maybe (TypeAttrs TypeSum))
--- typeSumPairInjection = Injection apl inv where
---     apl (TypeSum tn ma) = (tn, ma)
---     inv (n, ma) = TypeSum n <$> f ma where
---         f = case n of
---             StringTypeName -> simpleWithoutAttrs
---             LongTypeName -> simpleWithoutAttrs
---             DoubleTypeName -> simpleWithoutAttrs
---             OptionalTypeName -> simpleWithAttrs optional
---             ListTypeName -> simpleWithAttrs list
---             StringMapTypeName -> simpleWithAttrs stringmap
---             StructTypeName -> simpleWithAttrs struct
---             ReferenceTypeName -> simpleWithAttrs reference
---             EnumTypeName -> simpleWithAttrs enum
---             UnionTypeName -> simpleWithAttrs union
-
-typeSumPairBijection :: Bijection TypeSum (TypeName, Maybe (TypeAttrs TypeSum))
+typeSumPairBijection :: Bijection (TypeSum a) (TypeName, Maybe (TypeAttrs a))
 typeSumPairBijection = Bijection apl inv where
     apl (TypeSum tn ma) = (tn, ma)
     inv (n, ma) = TypeSum n ma
 
-typeSumSumInjection :: Injection ErrorMsg TypeSum (Sum (TypeAttrs TypeSum))
+typeSumSumInjection :: Injection ErrorMsg (TypeSum a) (Sum (TypeAttrs a))
 typeSumSumInjection = domainInjection' typeNameToText typeSumPairBijection
 
-data Type =
+newtype TypeSumFix = TypeSumFix { unTypeSumFix :: Fix TypeSum } deriving (Generic, Show, Eq)
+
+instance ToJSON TypeSumFix
+instance FromJSON TypeSumFix
+
+typeSumFixBijection :: Bijection (TypeSum (Fix TypeSum)) TypeSumFix
+typeSumFixBijection = Bijection (TypeSumFix . Fix) (unFix . unTypeSumFix)
+
+data Type a =
     StringType
   | LongType
   | DoubleType
-  | OptionalType Type
-  | ListType Type
-  | StringMapType Type
-  | StructType (Map Text Type)
-  | ReferenceType Text
-  | EnumType (Seq Text)
-  | UnionType (Map Text Type)
-  deriving (Generic, Show, Eq)
+  | OptionalType (TypeSingleAttrs a)
+  | ListType (TypeSingleAttrs a)
+  | StringMapType (TypeSingleAttrs a)
+  | StructType (TypeStructAttrs a)
+  | ReferenceType TypeReferenceAttrs
+  | EnumType TypeEnumAttrs
+  | UnionType (TypeUnionAttrs a)
+  deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
 
-typeSumInjection :: Injection ErrorMsg Type TypeSum
-typeSumInjection = Injection apl inv where
+typePairInjection :: Injection ErrorMsg (Type a) (TypeName, Maybe (TypeAttrs a))
+typePairInjection = Injection apl inv where
     apl t =
         case t of
-            StringType -> TypeSum StringTypeName Nothing
-            LongType -> TypeSum LongTypeName Nothing
-            DoubleType -> TypeSum DoubleTypeName Nothing
-            OptionalType ty -> TypeSum OptionalTypeName (Just (emptyTypeAttrs { optional = Just (TypeSingleAttrs (apl ty)) }))
-            ListType ty -> TypeSum ListTypeName (Just (emptyTypeAttrs { list = Just (TypeSingleAttrs (apl ty)) }))
-            StringMapType ty -> TypeSum StringMapTypeName (Just (emptyTypeAttrs { stringmap = Just (TypeSingleAttrs (apl ty)) }))
-            StructType fields -> TypeSum StructTypeName (Just (emptyTypeAttrs { struct = Just (TypeStructAttrs (apl <$> fields)) }))
-            ReferenceType name -> TypeSum ReferenceTypeName (Just (emptyTypeAttrs { reference = Just (TypeReferenceAttrs name) }))
-            EnumType values -> TypeSum EnumTypeName (Just (emptyTypeAttrs { enum = Just (TypeEnumAttrs values) }))
-            UnionType branches -> TypeSum UnionTypeName (Just (emptyTypeAttrs { union = Just (TypeUnionAttrs (apl <$> branches)) }))
-    inv (TypeSum n ma) = f ma where
+            StringType -> (StringTypeName, Nothing)
+            LongType -> (LongTypeName, Nothing)
+            DoubleType -> (DoubleTypeName, Nothing)
+            OptionalType attrs -> (OptionalTypeName, Just (emptyTypeAttrs { optional = Just attrs }))
+            ListType attrs -> (ListTypeName, Just (emptyTypeAttrs { list = Just attrs }))
+            StringMapType attrs -> (StringMapTypeName, Just (emptyTypeAttrs { stringmap = Just attrs }))
+            StructType attrs -> (StructTypeName, Just (emptyTypeAttrs { struct = Just attrs }))
+            ReferenceType attrs -> (ReferenceTypeName, Just (emptyTypeAttrs { reference = Just attrs }))
+            EnumType attrs -> (EnumTypeName, Just (emptyTypeAttrs { enum = Just attrs }))
+            UnionType attrs -> (UnionTypeName, Just (emptyTypeAttrs { union = Just attrs }))
+    inv (n, ma) = f ma where
         f = case n of
             StringTypeName -> withoutAttrs StringType
             LongTypeName -> withoutAttrs LongType
             DoubleTypeName -> withoutAttrs DoubleType
-            OptionalTypeName -> withAttrs optional (\(TypeSingleAttrs ty) -> OptionalType <$> inv ty)
-            ListTypeName -> withAttrs list (\(TypeSingleAttrs ty) -> ListType <$> inv ty)
-            StringMapTypeName -> withAttrs stringmap (\(TypeSingleAttrs ty) -> StringMapType <$> inv ty)
-            StructTypeName -> withAttrs struct (\(TypeStructAttrs fields) -> StructType <$> traverse inv fields)
-            ReferenceTypeName -> withAttrs reference (\(TypeReferenceAttrs name) -> pure (ReferenceType name))
-            EnumTypeName -> withAttrs enum (\(TypeEnumAttrs values) -> pure (EnumType values))
-            UnionTypeName -> withAttrs union (\(TypeUnionAttrs branches) -> UnionType <$> traverse inv branches)
+            OptionalTypeName -> withAttrs optional OptionalType
+            ListTypeName -> withAttrs list ListType
+            StringMapTypeName -> withAttrs stringmap StringMapType
+            StructTypeName -> withAttrs struct StructType
+            ReferenceTypeName -> withAttrs reference ReferenceType
+            EnumTypeName -> withAttrs enum EnumType
+            UnionTypeName -> withAttrs union UnionType
 
-instance ToJSON Type where
-    toJSON = injectionToJSON typeSumInjection
+typeSumInjection :: Injection ErrorMsg a b -> Injection ErrorMsg (Type a) (TypeSum b)
+typeSumInjection rinj = composeInjection (postTraverseInjection rinj (lowerBijection (flipBijection typeSumPairBijection))) typePairInjection
 
-instance FromJSON Type where
-    parseJSON = injectionParseJSON renderErrorMsg typeSumInjection
+newtype TypeFix = TypeFix { unTypeFix :: Fix Type } deriving (Generic, Show, Eq)
+
+fixType :: Type (Fix Type) -> TypeFix
+fixType = TypeFix . Fix
+
+typeFixBijection :: Bijection (Type (Fix Type)) TypeFix
+typeFixBijection = Bijection fixType (unFix . unTypeFix)
+
+typeFixInjection :: Injection ErrorMsg TypeFix TypeSumFix
+typeFixInjection = undefined
+
+instance ToJSON TypeFix where
+    toJSON = injectionToJSON typeFixInjection
+
+instance FromJSON TypeFix where
+    parseJSON = injectionParseJSON renderErrorMsg typeFixInjection

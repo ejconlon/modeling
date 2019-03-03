@@ -11,7 +11,7 @@ import Modeling.Data.Type
 data ExtParam = ExtParam
     { ns :: Namespace
     , name :: ParamName
-    , ty :: Type
+    , ty :: TypeFix
     } deriving (Generic, Show, Eq)
 
 instance ToJSON ExtParam
@@ -19,7 +19,7 @@ instance FromJSON ExtParam
 
 data Interface = Interface
     { params :: Seq ExtParam
-    , tydefs :: Map Text Type
+    , tydefs :: Map Text TypeFix
     } deriving (Generic, Show, Eq)
 
 instance ToJSON Interface
