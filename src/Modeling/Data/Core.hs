@@ -14,25 +14,21 @@ data ExtParam = ExtParam
     , ty :: Type
     } deriving (Generic, Show, Eq)
 
+instance ToJSON ExtParam
+instance FromJSON ExtParam
+
 data Interface = Interface
     { params :: Seq ExtParam
     , tydefs :: Map Text Type
     } deriving (Generic, Show, Eq)
 
-data ModelConnection = ModelConnection
-    {
-    } deriving (Generic, Show, Eq)
+instance ToJSON Interface
+instance FromJSON Interface
 
-data Model = Model
-    {
-    } deriving (Generic, Show, Eq)
-
-data ModelSpace = ModelSpace
-    { connection :: ModelConnection
-    , model :: Model
-    } deriving (Generic, Show, Eq)
-
-data Bundle = Bundle
+data Bundle a = Bundle
     { interface :: Interface
-    , root :: ModelSpace
+    , root :: a
     } deriving (Generic, Show, Eq)
+
+instance ToJSON a => ToJSON (Bundle a)
+instance FromJSON a => FromJSON (Bundle a)
