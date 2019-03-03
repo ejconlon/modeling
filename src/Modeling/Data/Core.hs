@@ -6,19 +6,7 @@ import Data.Map (Map)
 import Data.Sequence (Seq)
 import Data.Text (Text)
 import Modeling.Data.Common
-
-data Type =
-      StringType
-    | LongType
-    | DoubleType
-    | OptionalType Type
-    | ListType Type
-    | StringMapType Type
-    | StructType (Map Text Type)
-    | ReferenceType Text
-    | EnumType (Seq Text)
-    | UnionType (Map Text Type)
-    deriving (Generic, Show, Eq)
+import Modeling.Data.Type
 
 data ExtParam = ExtParam
     { ns :: Namespace

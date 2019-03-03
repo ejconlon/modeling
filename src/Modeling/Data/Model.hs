@@ -1,4 +1,4 @@
-module Modeling.Data.MidModel where
+module Modeling.Data.Model where
 
 import Data.Aeson
 import Data.Map (Map)
