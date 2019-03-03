@@ -2,7 +2,7 @@ module Modeling.Data.Adapt where
 
 import Data.Aeson
 import Modeling.Data.Core
-import Modeling.Data.Mid
+import Modeling.Data.MidType
 import Modeling.Data.Util
 
 missingAttrs, unexpectedAttrs :: ErrorMsg
