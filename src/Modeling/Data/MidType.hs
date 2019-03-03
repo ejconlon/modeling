@@ -138,4 +138,4 @@ typeShimPairBijection = Bijection apl inv where
     inv (n, ma) = TypeShim n ma
 
 typeShimSumInjection :: Injection ErrorMsg TypeShim (Sum (TypeAttrs TypeShim))
-typeShimSumInjection = sumInjection' typeNameToText typeShimPairBijection
+typeShimSumInjection = domainInjection' typeNameToText typeShimPairBijection

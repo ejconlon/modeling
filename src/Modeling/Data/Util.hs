@@ -82,32 +82,35 @@ instance FromJSON a => FromJSON (Sum a) where
                     then fail ("Too many branches in sum for " <> T.unpack n)
                     else Sum n <$> o .: n
 
-data SumInjectionError ne ae = SumNameError ne | SumAttributesError ae deriving (Generic, Eq, Show)
+data DomainInjectionError ne ae = DomainNameError ne | DomainAttributesError ae deriving (Generic, Eq, Show)
 
-onlyNameError :: SumInjectionError ne Void -> ne
-onlyNameError (SumNameError ne) = ne
+onlyNameError :: DomainInjectionError ne Void -> ne
+onlyNameError (DomainNameError ne) = ne
 
-sumInjection :: Injection ne n Text -> Injection ae a (n, Maybe b) -> Injection (SumInjectionError ne ae) a (Sum b)
-sumInjection ninj ainj = Injection apl inv where
+onlyAttributesError :: DomainInjectionError Void ae -> ae
+onlyAttributesError (DomainAttributesError ae) = ae
+
+domainInjection :: Injection ne n Text -> Injection ae a (n, Maybe b) -> Injection (DomainInjectionError ne ae) a (Sum b)
+domainInjection ninj ainj = Injection apl inv where
     apl a =
         let (n, mv) = (injApply ainj) a
             t = (injApply ninj) n
         in Sum t mv
     inv (Sum t mv) =
         case (injInvert ninj) t of
-            Left ne -> Left (SumNameError ne)
+            Left ne -> Left (DomainNameError ne)
             Right n ->
                 case (injInvert ainj) (n, mv) of
-                    Left ae -> Left (SumAttributesError ae)
+                    Left ae -> Left (DomainAttributesError ae)
                     Right a -> Right a
 
-sumInjection' :: Injection ne n Text -> Bijection a (n, Maybe b) -> Injection ne a (Sum b)
-sumInjection' ninj abij = injectionMapError onlyNameError (sumInjection ninj (lowerBijection abij))
+domainInjection' :: Injection ne n Text -> Bijection a (n, Maybe b) -> Injection ne a (Sum b)
+domainInjection' ninj abij = injectionMapError onlyNameError (domainInjection ninj (lowerBijection abij))
 
-simpleSumInjection :: Injection ae a (Text, Maybe b) -> Injection (SumInjectionError Void ae) a (Sum b)
-simpleSumInjection = sumInjection idInjection
+simpleDomainInjection :: Injection ae a (Text, Maybe b) -> Injection ae a (Sum b)
+simpleDomainInjection = injectionMapError onlyAttributesError . domainInjection idInjection
 
-type SumErrorMsg = SumInjectionError ErrorMsg ErrorMsg
+-- type DomainErrorMsg = DomainInjectionError ErrorMsg ErrorMsg
 
 missingAttrs, unexpectedAttrs :: ErrorMsg
 missingAttrs = ErrorMsg "Missing attrs"
@@ -124,3 +127,11 @@ withoutAttrs y ma = case ma of { Nothing -> pure y; Just _ -> Left unexpectedAtt
 
 withAttrs :: (a -> Maybe v) -> (v -> Either ErrorMsg b) -> Maybe a -> Either ErrorMsg b
 withAttrs s f ma = case (ma >>= s) of { Nothing -> Left missingAttrs; Just x -> f x }
+
+sumInjection :: Injection e a Value -> Injection e (Sum a) (Sum Value)
+sumInjection (Injection vapl vinv) = Injection apl inv where
+    apl (Sum n ma) = Sum n (vapl <$> ma)
+    inv (Sum n mv) = Sum n <$> ema where
+        ema = case mv of
+            Nothing -> Right Nothing
+            Just v -> Just <$> vinv v
