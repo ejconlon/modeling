@@ -9,38 +9,37 @@ import Modeling.Data.Bidi
 import Modeling.Data.Common
 import Modeling.Data.Util
 
--- TODO Rename to ModelCon
-data ModelName =
-      DirectModelName
-    | SerialModelName
-    | ParallelModelName
-    | AdaptorModelName
-    | SplitModelName
+data ModelCon =
+      DirectModelCon
+    | SerialModelCon
+    | ParallelModelCon
+    | AdaptorModelCon
+    | SplitModelCon
     deriving (Generic, Show, Eq)
 
-modelNameToText :: Injection ErrorMsg ModelName Text
-modelNameToText = Injection apply invert where
+modelConToText :: Injection ErrorMsg ModelCon Text
+modelConToText = Injection apply invert where
     apply t =
         case t of
-            DirectModelName -> "direct"
-            SerialModelName -> "serial"
-            ParallelModelName -> "parallel"
-            AdaptorModelName -> "adaptor"
-            SplitModelName -> "split"
+            DirectModelCon -> "direct"
+            SerialModelCon -> "serial"
+            ParallelModelCon -> "parallel"
+            AdaptorModelCon -> "adaptor"
+            SplitModelCon -> "split"
     invert u =
         case u of
-            "direct" -> Right DirectModelName
-            "serial" -> Right SerialModelName
-            "parallel" -> Right ParallelModelName
-            "adaptor" -> Right AdaptorModelName
-            "split" -> Right SplitModelName
+            "direct" -> Right DirectModelCon
+            "serial" -> Right SerialModelCon
+            "parallel" -> Right ParallelModelCon
+            "adaptor" -> Right AdaptorModelCon
+            "split" -> Right SplitModelCon
             _ -> Left (ErrorMsg ("Unknown model name " <> u))
 
-instance ToJSON ModelName where
-    toJSON = injectionToJSON modelNameToText
+instance ToJSON ModelCon where
+    toJSON = injectionToJSON modelConToText
 
-instance FromJSON ModelName where
-    parseJSON = injectionParseJSON renderErrorMsg modelNameToText
+instance FromJSON ModelCon where
+    parseJSON = injectionParseJSON renderErrorMsg modelConToText
 
 data ModelDirectAttrs = ModelDirectAttrs
     { name :: Text
@@ -79,20 +78,20 @@ emptyModelAttrs :: ModelAttrs a
 emptyModelAttrs = ModelAttrs Nothing Nothing Nothing
 
 data ModelSum a = ModelSum
-    { name :: ModelName
+    { name :: ModelCon
     , attributes :: Maybe (ModelAttrs a)
     } deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
 
 instance ToJSON a => ToJSON (ModelSum a)
 instance FromJSON a => FromJSON (ModelSum a)
 
-modelSumPairBijection :: Bijection (ModelSum a) (ModelName, Maybe (ModelAttrs a))
+modelSumPairBijection :: Bijection (ModelSum a) (ModelCon, Maybe (ModelAttrs a))
 modelSumPairBijection = Bijection apl inv where
     apl (ModelSum tn ma) = (tn, ma)
     inv (n, ma) = ModelSum n ma
 
 modelSumSumInjection :: Injection ErrorMsg (ModelSum a) (Sum (ModelAttrs a))
-modelSumSumInjection = domainInjection' modelNameToText modelSumPairBijection
+modelSumSumInjection = domainInjection' modelConToText modelSumPairBijection
 
 data Model a =
       DirectModel ModelDirectAttrs
@@ -100,18 +99,18 @@ data Model a =
     | SplitModel (ModelSplitAttrs a)
     deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
 
-modelPairInjection :: Injection ErrorMsg (Model a) (ModelName, Maybe (ModelAttrs a))
+modelPairInjection :: Injection ErrorMsg (Model a) (ModelCon, Maybe (ModelAttrs a))
 modelPairInjection = Injection apl inv where
     apl t =
         case t of
-            DirectModel attrs -> (DirectModelName, Just (emptyModelAttrs { direct = Just attrs }))
-            SerialModel attrs -> (SplitModelName, Just (emptyModelAttrs { serial = Just attrs }))
-            SplitModel attrs -> (SplitModelName, Just (emptyModelAttrs { split = Just attrs }))
+            DirectModel attrs -> (DirectModelCon, Just (emptyModelAttrs { direct = Just attrs }))
+            SerialModel attrs -> (SplitModelCon, Just (emptyModelAttrs { serial = Just attrs }))
+            SplitModel attrs -> (SplitModelCon, Just (emptyModelAttrs { split = Just attrs }))
     inv (n, ma) = f ma where
         f = case n of
-            DirectModelName -> withAttrs direct DirectModel
-            SerialModelName -> withAttrs serial SerialModel
-            SplitModelName -> withAttrs split SplitModel
+            DirectModelCon -> withAttrs direct DirectModel
+            SerialModelCon -> withAttrs serial SerialModel
+            SplitModelCon -> withAttrs split SplitModel
 
 modelSumInjection :: Injection ErrorMsg a b -> Injection ErrorMsg (Model a) (ModelSum b)
 modelSumInjection rinj = composeInjection (postTraverseInjection rinj (lowerBijection (flipBijection modelSumPairBijection))) modelPairInjection
