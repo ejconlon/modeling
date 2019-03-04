@@ -64,6 +64,9 @@ data ParamAttrs = ParamAttrs
 instance ToJSON ParamAttrs
 instance FromJSON ParamAttrs
 
+emptyParamAttrs :: ParamAttrs
+emptyParamAttrs = ParamAttrs Nothing Nothing Nothing
+
 data ParamSum = ParamSum
     { name :: ParamCon
     , attributes :: Maybe ParamAttrs
@@ -72,15 +75,38 @@ data ParamSum = ParamSum
 instance ToJSON ParamSum
 instance FromJSON ParamSum
 
+paramSumPairBijection :: Bijection ParamSum (ParamCon, Maybe ParamAttrs)
+paramSumPairBijection = Bijection apl inv where
+    apl (ParamSum tn ma) = (tn, ma)
+    inv (n, ma) = ParamSum n ma
+
+paramSumSumInjection :: Injection ErrorMsg ParamSum (Sum ParamAttrs)
+paramSumSumInjection = domainInjection' paramConToText paramSumPairBijection
+
 data Param =
       LiteralParam LiteralParamAttrs
     | ExternalParam ExternalParamAttrs
     | InternalParam InternalParamAttrs
     deriving (Generic, Eq, Show)
 
--- TODO use ParamSum serde for this
+paramPairInjection :: Injection ErrorMsg Param (ParamCon, Maybe ParamAttrs)
+paramPairInjection = Injection apl inv where
+    apl t =
+        case t of
+            LiteralParam attrs -> (LiteralParamCon, Just (emptyParamAttrs { literal = Just attrs }))
+            ExternalParam attrs -> (ExternalParamCon, Just (emptyParamAttrs { external = Just attrs }))
+            InternalParam attrs -> (InternalParamCon, Just (emptyParamAttrs { internal = Just attrs }))
+    inv (n, ma) = f ma where
+        f = case n of
+            LiteralParamCon -> withAttrs literal LiteralParam
+            ExternalParamCon -> withAttrs external ExternalParam
+            InternalParamCon -> withAttrs internal InternalParam
+
+paramInjection :: Injection ErrorMsg Param ParamSum
+paramInjection = composeLeft (flipBijection paramSumPairBijection) paramPairInjection
+
 instance ToJSON Param where
-    toJSON = undefined
+    toJSON = injectionToJSON paramInjection
 
 instance FromJSON Param where
-    parseJSON = undefined
+    parseJSON = injectionParseJSON renderErrorMsg paramInjection

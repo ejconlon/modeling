@@ -11,6 +11,7 @@ import Modeling.Data.Fix
 import Modeling.Data.Common
 import Modeling.Data.Util
 
+-- TODO Rename to TypeCon
 data TypeName =
       StringTypeName
     | LongTypeName

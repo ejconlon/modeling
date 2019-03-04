@@ -9,6 +9,7 @@ import Modeling.Data.Bidi
 import Modeling.Data.Common
 import Modeling.Data.Util
 
+-- TODO Rename to ModelCon
 data ModelName =
       DirectModelName
     | SerialModelName
