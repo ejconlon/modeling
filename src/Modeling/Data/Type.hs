@@ -15,6 +15,7 @@ data TypeName =
       StringTypeName
     | LongTypeName
     | DoubleTypeName
+    | BooleanTypeName
     | OptionalTypeName
     | ListTypeName
     | StringMapTypeName
@@ -22,6 +23,7 @@ data TypeName =
     | ReferenceTypeName
     | EnumTypeName
     | UnionTypeName
+    | AnyTypeName
     deriving (Generic, Eq, Show)
 
 typeNameToText :: Injection ErrorMsg TypeName Text
@@ -31,6 +33,7 @@ typeNameToText = Injection apply invert where
             StringTypeName -> "string"
             LongTypeName -> "long"
             DoubleTypeName -> "double"
+            BooleanTypeName -> "boolean"
             OptionalTypeName -> "optional"
             ListTypeName -> "list"
             StringMapTypeName -> "stringmap"
@@ -38,11 +41,13 @@ typeNameToText = Injection apply invert where
             ReferenceTypeName -> "reference"
             EnumTypeName -> "enum"
             UnionTypeName -> "union"
+            AnyTypeName -> "any"
     invert u =
         case u of
             "string" -> Right StringTypeName
             "long" -> Right LongTypeName
             "double" -> Right DoubleTypeName
+            "boolean" -> Right BooleanTypeName
             "optional" -> Right OptionalTypeName
             "list" -> Right ListTypeName
             "stringmap" -> Right StringMapTypeName
@@ -50,6 +55,7 @@ typeNameToText = Injection apply invert where
             "reference" -> Right ReferenceTypeName
             "enum" -> Right EnumTypeName
             "union" -> Right UnionTypeName
+            "any" -> Right AnyTypeName
             _ -> Left (ErrorMsg ("Unknown type name " <> u))
 
 instance ToJSON TypeName where
@@ -137,6 +143,7 @@ data Type a =
     StringType
   | LongType
   | DoubleType
+  | BooleanType
   | OptionalType (TypeSingleAttrs a)
   | ListType (TypeSingleAttrs a)
   | StringMapType (TypeSingleAttrs a)
@@ -144,6 +151,7 @@ data Type a =
   | ReferenceType TypeReferenceAttrs
   | EnumType TypeEnumAttrs
   | UnionType (TypeUnionAttrs a)
+  | AnyType
   deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
 
 typePairInjection :: Injection ErrorMsg (Type a) (TypeName, Maybe (TypeAttrs a))
@@ -153,6 +161,7 @@ typePairInjection = Injection apl inv where
             StringType -> (StringTypeName, Nothing)
             LongType -> (LongTypeName, Nothing)
             DoubleType -> (DoubleTypeName, Nothing)
+            BooleanType -> (BooleanTypeName, Nothing)
             OptionalType attrs -> (OptionalTypeName, Just (emptyTypeAttrs { optional = Just attrs }))
             ListType attrs -> (ListTypeName, Just (emptyTypeAttrs { list = Just attrs }))
             StringMapType attrs -> (StringMapTypeName, Just (emptyTypeAttrs { stringmap = Just attrs }))
@@ -160,11 +169,13 @@ typePairInjection = Injection apl inv where
             ReferenceType attrs -> (ReferenceTypeName, Just (emptyTypeAttrs { reference = Just attrs }))
             EnumType attrs -> (EnumTypeName, Just (emptyTypeAttrs { enum = Just attrs }))
             UnionType attrs -> (UnionTypeName, Just (emptyTypeAttrs { union = Just attrs }))
+            AnyType -> (AnyTypeName, Nothing)
     inv (n, ma) = f ma where
         f = case n of
             StringTypeName -> withoutAttrs StringType
             LongTypeName -> withoutAttrs LongType
             DoubleTypeName -> withoutAttrs DoubleType
+            BooleanTypeName -> withoutAttrs BooleanType
             OptionalTypeName -> withAttrs optional OptionalType
             ListTypeName -> withAttrs list ListType
             StringMapTypeName -> withAttrs stringmap StringMapType
@@ -172,6 +183,7 @@ typePairInjection = Injection apl inv where
             ReferenceTypeName -> withAttrs reference ReferenceType
             EnumTypeName -> withAttrs enum EnumType
             UnionTypeName -> withAttrs union UnionType
+            AnyTypeName -> withoutAttrs AnyType
 
 typeSumInjection :: Injection ErrorMsg a b -> Injection ErrorMsg (Type a) (TypeSum b)
 typeSumInjection rinj = composeInjection (postTraverseInjection rinj (lowerBijection (flipBijection typeSumPairBijection))) typePairInjection

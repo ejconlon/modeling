@@ -16,8 +16,8 @@ type ParamName = Text
 
 data Connection a = Connection
     { nspart :: NamespacePart
-    , named :: Map Text a
-    , additional :: Seq a
+    , named :: Maybe (Map Text a)
+    , additional :: Maybe (Seq a)
     } deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
 
 instance ToJSON a => ToJSON (Connection a)
@@ -26,7 +26,7 @@ instance FromJSON a => FromJSON (Connection a)
 data Space a = Space
     { connection :: Connection a
     , element :: a
-    } deriving (Generic, Show, Eq)
+    } deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
 
 instance ToJSON a => ToJSON (Space a)
 instance FromJSON a => FromJSON (Space a)
