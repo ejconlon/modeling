@@ -37,6 +37,12 @@ injectionParseJSON render (Injection { injInvert }) v = do
 
 data Sum a = Sum Text (Maybe a) deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
 
+-- TODO Pull Sum instance code into this and use this in them
+-- sumInjection :: Injection e a Value -> Injection e (Sum a) Value
+-- sumInjection (Injection innerApl innerInj) = Injection outerApl outerInj where
+--     outerApl = undefined
+--     innerApl = undefined
+
 instance ToJSON a => ToJSON (Sum a) where
     toJSON (Sum n ma) = object (("name" .= n):(maybe [] (\a -> ["attributes" .= object [n .= a]]) ma))
 

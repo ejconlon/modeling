@@ -110,3 +110,6 @@ composeLeft (Bijection apl1 inv1) (Injection apl2 inv2) = Injection (apl1 . apl2
 
 composeRight :: Injection e b c -> Bijection a b -> Injection e a c
 composeRight (Injection apl1 inv1) (Bijection apl2 inv2) = Injection (apl1 . apl2) ((inv2 <$>) . inv1)
+
+raiseInjection :: (e -> b) -> Injection e a b -> Bijection (Either e a) b
+raiseInjection f (Injection apl inj) = Bijection (either f apl) inj
