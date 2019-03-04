@@ -11,59 +11,58 @@ import Modeling.Data.Fix
 import Modeling.Data.Common
 import Modeling.Data.Util
 
--- TODO Rename to TypeCon
-data TypeName =
-      StringTypeName
-    | LongTypeName
-    | DoubleTypeName
-    | BooleanTypeName
-    | OptionalTypeName
-    | ListTypeName
-    | StringMapTypeName
-    | StructTypeName
-    | ReferenceTypeName
-    | EnumTypeName
-    | UnionTypeName
-    | AnyTypeName
+data TypeCon =
+      StringTypeCon
+    | LongTypeCon
+    | DoubleTypeCon
+    | BooleanTypeCon
+    | OptionalTypeCon
+    | ListTypeCon
+    | StringMapTypeCon
+    | StructTypeCon
+    | ReferenceTypeCon
+    | EnumTypeCon
+    | UnionTypeCon
+    | AnyTypeCon
     deriving (Generic, Eq, Show)
 
-typeNameToText :: Injection ErrorMsg TypeName Text
-typeNameToText = Injection apply invert where
+typeConToText :: Injection ErrorMsg TypeCon Text
+typeConToText = Injection apply invert where
     apply t =
         case t of
-            StringTypeName -> "string"
-            LongTypeName -> "long"
-            DoubleTypeName -> "double"
-            BooleanTypeName -> "boolean"
-            OptionalTypeName -> "optional"
-            ListTypeName -> "list"
-            StringMapTypeName -> "stringmap"
-            StructTypeName -> "struct"
-            ReferenceTypeName -> "reference"
-            EnumTypeName -> "enum"
-            UnionTypeName -> "union"
-            AnyTypeName -> "any"
+            StringTypeCon -> "string"
+            LongTypeCon -> "long"
+            DoubleTypeCon -> "double"
+            BooleanTypeCon -> "boolean"
+            OptionalTypeCon -> "optional"
+            ListTypeCon -> "list"
+            StringMapTypeCon -> "stringmap"
+            StructTypeCon -> "struct"
+            ReferenceTypeCon -> "reference"
+            EnumTypeCon -> "enum"
+            UnionTypeCon -> "union"
+            AnyTypeCon -> "any"
     invert u =
         case u of
-            "string" -> Right StringTypeName
-            "long" -> Right LongTypeName
-            "double" -> Right DoubleTypeName
-            "boolean" -> Right BooleanTypeName
-            "optional" -> Right OptionalTypeName
-            "list" -> Right ListTypeName
-            "stringmap" -> Right StringMapTypeName
-            "struct" -> Right StructTypeName
-            "reference" -> Right ReferenceTypeName
-            "enum" -> Right EnumTypeName
-            "union" -> Right UnionTypeName
-            "any" -> Right AnyTypeName
+            "string" -> Right StringTypeCon
+            "long" -> Right LongTypeCon
+            "double" -> Right DoubleTypeCon
+            "boolean" -> Right BooleanTypeCon
+            "optional" -> Right OptionalTypeCon
+            "list" -> Right ListTypeCon
+            "stringmap" -> Right StringMapTypeCon
+            "struct" -> Right StructTypeCon
+            "reference" -> Right ReferenceTypeCon
+            "enum" -> Right EnumTypeCon
+            "union" -> Right UnionTypeCon
+            "any" -> Right AnyTypeCon
             _ -> Left (ErrorMsg ("Unknown type name " <> u))
 
-instance ToJSON TypeName where
-    toJSON = injectionToJSON typeNameToText
+instance ToJSON TypeCon where
+    toJSON = injectionToJSON typeConToText
 
-instance FromJSON TypeName where
-    parseJSON = injectionParseJSON renderErrorMsg typeNameToText
+instance FromJSON TypeCon where
+    parseJSON = injectionParseJSON renderErrorMsg typeConToText
 
 data TypeSingleAttrs a = TypeSingleAttrs
     { ty :: a
@@ -117,20 +116,20 @@ instance ToJSON a => ToJSON (TypeAttrs a)
 instance FromJSON a => FromJSON (TypeAttrs a)
 
 data TypeSum a = TypeSum
-    { name :: TypeName
+    { name :: TypeCon
     , attributes :: Maybe (TypeAttrs a)
     } deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
 
 instance ToJSON a => ToJSON (TypeSum a)
 instance FromJSON a => FromJSON (TypeSum a)
 
-typeSumPairBijection :: Bijection (TypeSum a) (TypeName, Maybe (TypeAttrs a))
+typeSumPairBijection :: Bijection (TypeSum a) (TypeCon, Maybe (TypeAttrs a))
 typeSumPairBijection = Bijection apl inv where
     apl (TypeSum tn ma) = (tn, ma)
     inv (n, ma) = TypeSum n ma
 
 typeSumSumInjection :: Injection ErrorMsg (TypeSum a) (Sum (TypeAttrs a))
-typeSumSumInjection = domainInjection' typeNameToText typeSumPairBijection
+typeSumSumInjection = domainInjection' typeConToText typeSumPairBijection
 
 newtype TypeSumFix = TypeSumFix { unTypeSumFix :: Fix TypeSum } deriving (Generic, Show, Eq)
 
@@ -155,36 +154,36 @@ data Type a =
   | AnyType
   deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
 
-typePairInjection :: Injection ErrorMsg (Type a) (TypeName, Maybe (TypeAttrs a))
+typePairInjection :: Injection ErrorMsg (Type a) (TypeCon, Maybe (TypeAttrs a))
 typePairInjection = Injection apl inv where
     apl t =
         case t of
-            StringType -> (StringTypeName, Nothing)
-            LongType -> (LongTypeName, Nothing)
-            DoubleType -> (DoubleTypeName, Nothing)
-            BooleanType -> (BooleanTypeName, Nothing)
-            OptionalType attrs -> (OptionalTypeName, Just (emptyTypeAttrs { optional = Just attrs }))
-            ListType attrs -> (ListTypeName, Just (emptyTypeAttrs { list = Just attrs }))
-            StringMapType attrs -> (StringMapTypeName, Just (emptyTypeAttrs { stringmap = Just attrs }))
-            StructType attrs -> (StructTypeName, Just (emptyTypeAttrs { struct = Just attrs }))
-            ReferenceType attrs -> (ReferenceTypeName, Just (emptyTypeAttrs { reference = Just attrs }))
-            EnumType attrs -> (EnumTypeName, Just (emptyTypeAttrs { enum = Just attrs }))
-            UnionType attrs -> (UnionTypeName, Just (emptyTypeAttrs { union = Just attrs }))
-            AnyType -> (AnyTypeName, Nothing)
+            StringType -> (StringTypeCon, Nothing)
+            LongType -> (LongTypeCon, Nothing)
+            DoubleType -> (DoubleTypeCon, Nothing)
+            BooleanType -> (BooleanTypeCon, Nothing)
+            OptionalType attrs -> (OptionalTypeCon, Just (emptyTypeAttrs { optional = Just attrs }))
+            ListType attrs -> (ListTypeCon, Just (emptyTypeAttrs { list = Just attrs }))
+            StringMapType attrs -> (StringMapTypeCon, Just (emptyTypeAttrs { stringmap = Just attrs }))
+            StructType attrs -> (StructTypeCon, Just (emptyTypeAttrs { struct = Just attrs }))
+            ReferenceType attrs -> (ReferenceTypeCon, Just (emptyTypeAttrs { reference = Just attrs }))
+            EnumType attrs -> (EnumTypeCon, Just (emptyTypeAttrs { enum = Just attrs }))
+            UnionType attrs -> (UnionTypeCon, Just (emptyTypeAttrs { union = Just attrs }))
+            AnyType -> (AnyTypeCon, Nothing)
     inv (n, ma) = f ma where
         f = case n of
-            StringTypeName -> withoutAttrs StringType
-            LongTypeName -> withoutAttrs LongType
-            DoubleTypeName -> withoutAttrs DoubleType
-            BooleanTypeName -> withoutAttrs BooleanType
-            OptionalTypeName -> withAttrs optional OptionalType
-            ListTypeName -> withAttrs list ListType
-            StringMapTypeName -> withAttrs stringmap StringMapType
-            StructTypeName -> withAttrs struct StructType
-            ReferenceTypeName -> withAttrs reference ReferenceType
-            EnumTypeName -> withAttrs enum EnumType
-            UnionTypeName -> withAttrs union UnionType
-            AnyTypeName -> withoutAttrs AnyType
+            StringTypeCon -> withoutAttrs StringType
+            LongTypeCon -> withoutAttrs LongType
+            DoubleTypeCon -> withoutAttrs DoubleType
+            BooleanTypeCon -> withoutAttrs BooleanType
+            OptionalTypeCon -> withAttrs optional OptionalType
+            ListTypeCon -> withAttrs list ListType
+            StringMapTypeCon -> withAttrs stringmap StringMapType
+            StructTypeCon -> withAttrs struct StructType
+            ReferenceTypeCon -> withAttrs reference ReferenceType
+            EnumTypeCon -> withAttrs enum EnumType
+            UnionTypeCon -> withAttrs union UnionType
+            AnyTypeCon -> withoutAttrs AnyType
 
 typeSumInjection :: Injection ErrorMsg a b -> Injection ErrorMsg (Type a) (TypeSum b)
 typeSumInjection rinj = composeInjection (postTraverseInjection rinj (lowerBijection (flipBijection typeSumPairBijection))) typePairInjection

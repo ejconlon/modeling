@@ -11,3 +11,4 @@ type NamespacePart = Text
 type Namespace = Seq NamespacePart
 type ParamName = Text
 type ElementName = Text
+type TypeName = Text

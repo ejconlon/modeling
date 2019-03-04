@@ -9,19 +9,9 @@ import Modeling.Data.Common
 import Modeling.Data.Param
 import Modeling.Data.Type
 
-data ExtParam = ExtParam
-    { ns :: Namespace
-    , name :: ParamName
-    , ty :: TypeFix
-    } deriving (Generic, Show, Eq)
-
-instance ToJSON ExtParam
-instance FromJSON ExtParam
-
 data Connection a = Connection
     { nspart :: NamespacePart
     , inputs :: Maybe (Map ParamName Param)
-    , outputs :: Maybe (Map ParamName TypeFix)
     , named :: Maybe (Map ElementName a)
     , additional :: Maybe (Seq a)
     } deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
@@ -37,16 +27,17 @@ data Space a = Space
 instance ToJSON a => ToJSON (Space a)
 instance FromJSON a => FromJSON (Space a)
 
-data Interface = Interface
-    { params :: Seq ExtParam
-    , tydefs :: Map Text TypeFix
+data Signature = Signature
+    { inputs :: Maybe (Map ParamName TypeFix)
+    , outputs :: Maybe (Map ParamName TypeFix)
+    , tydefs :: Maybe (Map TypeName TypeFix)
     } deriving (Generic, Show, Eq)
 
-instance ToJSON Interface
-instance FromJSON Interface
+instance ToJSON Signature
+instance FromJSON Signature
 
 data Bundle a = Bundle
-    { interface :: Interface
+    { signature :: Maybe Signature
     , root :: a
     } deriving (Generic, Show, Eq)
 
