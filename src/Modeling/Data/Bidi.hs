@@ -2,7 +2,7 @@ module Modeling.Data.Bidi where
 
 import Control.Monad ((>=>))
 import Data.Void (Void, absurd)
-import Modeling.Data.Fix (Fix (..))
+-- import Modeling.Data.Fix (Fix (..))
 
 -- TODO are these better expressed with prisms and isos?
 
@@ -34,26 +34,26 @@ voidBijection (Bijection apl inv) = Injection apl (Right . inv)
 lowerBijection :: Bijection a b -> Injection e a b
 lowerBijection = injectionMapError absurd . voidBijection
 
-fixBijection :: Bijection (f (Fix f)) (Fix f)
-fixBijection = Bijection Fix unFix
+-- fixBijection :: Bijection (f (Fix f)) (Fix f)
+-- fixBijection = Bijection Fix unFix
 
-preFixBijection :: Bijection (f (Fix f)) b -> Bijection (Fix f) b
-preFixBijection = flip composeBijection (flipBijection fixBijection)
+-- preFixBijection :: Bijection (f (Fix f)) b -> Bijection (Fix f) b
+-- preFixBijection = flip composeBijection (flipBijection fixBijection)
 
-preUnFixBijection :: Bijection (Fix f) b -> Bijection (f (Fix f)) b
-preUnFixBijection = flip composeBijection (fixBijection)
+-- preUnFixBijection :: Bijection (Fix f) b -> Bijection (f (Fix f)) b
+-- preUnFixBijection = flip composeBijection (fixBijection)
 
-postFixBijection :: Bijection a (f (Fix f)) -> Bijection a (Fix f)
-postFixBijection = composeBijection fixBijection
+-- postFixBijection :: Bijection a (f (Fix f)) -> Bijection a (Fix f)
+-- postFixBijection = composeBijection fixBijection
 
-postUnFixBijection :: Bijection a (Fix f) -> Bijection a (f (Fix f))
-postUnFixBijection = composeBijection (flipBijection fixBijection)
+-- postUnFixBijection :: Bijection a (Fix f) -> Bijection a (f (Fix f))
+-- postUnFixBijection = composeBijection (flipBijection fixBijection)
 
-bothFixBijection :: Bijection (f (Fix f)) (g (Fix g)) -> Bijection (Fix f) (Fix g)
-bothFixBijection = preFixBijection . postFixBijection
+-- bothFixBijection :: Bijection (f (Fix f)) (g (Fix g)) -> Bijection (Fix f) (Fix g)
+-- bothFixBijection = preFixBijection . postFixBijection
 
-bothUnFixBijection :: Bijection (Fix f) (Fix g) -> Bijection (f (Fix f)) (g (Fix g))
-bothUnFixBijection = preUnFixBijection . postUnFixBijection
+-- bothUnFixBijection :: Bijection (Fix f) (Fix g) -> Bijection (f (Fix f)) (g (Fix g))
+-- bothUnFixBijection = preUnFixBijection . postUnFixBijection
 
 data Injection e a b = Injection { injApply :: a -> b, injInvert :: b -> Either e a }
 
@@ -67,23 +67,23 @@ preTraverseInjection (Injection innerApl innerInj) (Injection outerApl outerInj)
     apl = outerApl . (innerApl <$>)
     inj = outerInj >=> traverse innerInj
 
-preFixInjection :: Injection e (f (Fix f)) b -> Injection e (Fix f) b
-preFixInjection = flip composeRight (flipBijection fixBijection)
+-- preFixInjection :: Injection e (f (Fix f)) b -> Injection e (Fix f) b
+-- preFixInjection = flip composeRight (flipBijection fixBijection)
 
-postFixInjection :: Injection e a (f (Fix f)) -> Injection e a (Fix f)
-postFixInjection = composeLeft fixBijection
+-- postFixInjection :: Injection e a (f (Fix f)) -> Injection e a (Fix f)
+-- postFixInjection = composeLeft fixBijection
 
-bothFixInjection :: Injection e (f (Fix f)) (g (Fix g)) -> Injection e (Fix f) (Fix g)
-bothFixInjection = preFixInjection . postFixInjection
+-- bothFixInjection :: Injection e (f (Fix f)) (g (Fix g)) -> Injection e (Fix f) (Fix g)
+-- bothFixInjection = preFixInjection . postFixInjection
 
-preUnFixInjection :: Injection e (Fix f) b -> Injection e (f (Fix f)) b
-preUnFixInjection = flip composeRight fixBijection
+-- preUnFixInjection :: Injection e (Fix f) b -> Injection e (f (Fix f)) b
+-- preUnFixInjection = flip composeRight fixBijection
 
-postUnFixInjection :: Injection e a (Fix g) -> Injection e a (g (Fix g))
-postUnFixInjection = composeLeft (flipBijection fixBijection)
+-- postUnFixInjection :: Injection e a (Fix g) -> Injection e a (g (Fix g))
+-- postUnFixInjection = composeLeft (flipBijection fixBijection)
 
-bothUnFixInjection :: Injection e (Fix f) (Fix g) -> Injection e (f (Fix f)) (g (Fix g))
-bothUnFixInjection = preUnFixInjection . postUnFixInjection
+-- bothUnFixInjection :: Injection e (Fix f) (Fix g) -> Injection e (f (Fix f)) (g (Fix g))
+-- bothUnFixInjection = preUnFixInjection . postUnFixInjection
 
 voidInjection :: Injection Void a b -> Bijection a b
 voidInjection (Injection innerApl innerInj) = Bijection innerApl inj where

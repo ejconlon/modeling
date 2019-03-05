@@ -7,7 +7,6 @@ import Data.Text (Text)
 import qualified Data.Text as T
 import GHC.Generics (Generic)
 import Modeling.Data.Bidi
-import Modeling.Data.Fix
 import Modeling.Data.Common
 import Modeling.Data.Util
 
@@ -131,12 +130,12 @@ typeSumPairBijection = Bijection apl inv where
 typeSumSumInjection :: Injection ErrorMsg (TypeSum a) (Sum (TypeAttrs a))
 typeSumSumInjection = domainInjection' typeConToText typeSumPairBijection
 
-newtype TypeSumFix = TypeSumFix { unTypeSumFix :: Fix TypeSum }
+newtype TypeSumFix = TypeSumFix { unTypeSumFix :: TypeSum TypeSumFix }
     deriving (Generic, Show, Eq)
-    deriving (ToJSON, FromJSON) via (Fix TypeSum)
+    deriving (ToJSON, FromJSON) via (TypeSum TypeSumFix)
 
-typeSumFixBijection :: Bijection (TypeSum (Fix TypeSum)) TypeSumFix
-typeSumFixBijection = Bijection (TypeSumFix . Fix) (unFix . unTypeSumFix)
+typeSumFixBijection :: Bijection (TypeSum TypeSumFix) TypeSumFix
+typeSumFixBijection = Bijection TypeSumFix unTypeSumFix
 
 data Type a =
     StringType
@@ -187,17 +186,14 @@ typePairInjection = Injection apl inv where
 typeSumInjection :: Injection ErrorMsg a b -> Injection ErrorMsg (Type a) (TypeSum b)
 typeSumInjection rinj = composeInjection (postTraverseInjection rinj (lowerBijection (flipBijection typeSumPairBijection))) typePairInjection
 
-newtype TypeFix = TypeFix { unTypeFix :: Fix Type } deriving (Generic, Show, Eq)
+newtype TypeFix = TypeFix { unTypeFix :: Type TypeFix } deriving (Generic, Show, Eq)
 
-fixType :: Type (Fix Type) -> TypeFix
-fixType = TypeFix . Fix
-
-typeFixBijection :: Bijection (Type (Fix Type)) TypeFix
-typeFixBijection = Bijection fixType (unFix . unTypeFix)
+typeFixBijection :: Bijection (Type TypeFix) TypeFix
+typeFixBijection = Bijection TypeFix unTypeFix
 
 typeFixInjection :: Injection ErrorMsg TypeFix TypeSumFix
 typeFixInjection =
-    let knot = typeSumInjection (bothFixInjection knot)
+    let knot = typeSumInjection typeFixInjection
     in composeRight (composeLeft typeSumFixBijection knot) (flipBijection typeFixBijection)
 
 instance ToJSON TypeFix where

@@ -3,6 +3,7 @@ module Modeling.Data.Param where
 import Data.Aeson
 import Data.Text (Text)
 import GHC.Generics
+import Modeling.Data.Aeson
 import Modeling.Data.Bidi
 import Modeling.Data.Common
 import Modeling.Data.Util
@@ -37,23 +38,23 @@ data LiteralParamAttrs = LiteralParamAttrs
     { value :: Value
     } deriving (Generic, Eq, Show)
 
-instance ToJSON LiteralParamAttrs
-instance FromJSON LiteralParamAttrs
+deriving via (AesonWrapper LiteralParamAttrs) instance ToJSON LiteralParamAttrs
+deriving via (AesonWrapper LiteralParamAttrs) instance FromJSON LiteralParamAttrs
 
 data ExternalParamAttrs = ExternalParamAttrs
     { ns :: Namespace
     , name :: ParamName
     } deriving (Generic, Eq, Show)
 
-instance ToJSON ExternalParamAttrs
-instance FromJSON ExternalParamAttrs
+deriving via (AesonWrapper ExternalParamAttrs) instance ToJSON ExternalParamAttrs
+deriving via (AesonWrapper ExternalParamAttrs) instance FromJSON ExternalParamAttrs
 
 data InternalParamAttrs = InternalParamAttrs
     { index :: Int
     } deriving (Generic, Eq, Show)
 
-instance ToJSON InternalParamAttrs
-instance FromJSON InternalParamAttrs
+deriving via (AesonWrapper InternalParamAttrs) instance ToJSON InternalParamAttrs
+deriving via (AesonWrapper InternalParamAttrs) instance FromJSON InternalParamAttrs
 
 data ParamAttrs = ParamAttrs
     { literal :: Maybe LiteralParamAttrs
@@ -61,8 +62,8 @@ data ParamAttrs = ParamAttrs
     , internal :: Maybe InternalParamAttrs
     } deriving (Generic, Eq, Show)
 
-instance ToJSON ParamAttrs
-instance FromJSON ParamAttrs
+deriving via (AesonWrapper ParamAttrs) instance ToJSON ParamAttrs
+deriving via (AesonWrapper ParamAttrs) instance FromJSON ParamAttrs
 
 emptyParamAttrs :: ParamAttrs
 emptyParamAttrs = ParamAttrs Nothing Nothing Nothing
@@ -72,8 +73,8 @@ data ParamSum = ParamSum
     , attributes :: Maybe ParamAttrs
     } deriving (Generic, Eq, Show)
 
-instance ToJSON ParamSum
-instance FromJSON ParamSum
+deriving via (AesonWrapper ParamSum) instance ToJSON ParamSum
+deriving via (AesonWrapper ParamSum) instance FromJSON ParamSum
 
 paramSumPairBijection :: Bijection ParamSum (ParamCon, Maybe ParamAttrs)
 paramSumPairBijection = Bijection apl inv where

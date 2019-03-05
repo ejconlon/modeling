@@ -10,7 +10,6 @@ import qualified Data.Text as T
 import Data.Void (Void)
 import GHC.Generics (Generic)
 import Modeling.Data.Bidi
-import Modeling.Data.Fix
 
 -- Aeson errors are stringy
 newtype ErrorMsg = ErrorMsg { unErrorMsg :: Text } deriving (Show, Eq, IsString)

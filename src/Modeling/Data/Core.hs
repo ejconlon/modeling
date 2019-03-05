@@ -5,6 +5,7 @@ import GHC.Generics (Generic)
 import Data.Map (Map)
 import Data.Sequence (Seq)
 import Data.Text (Text)
+import Modeling.Data.Aeson
 import Modeling.Data.Common
 import Modeling.Data.Param
 import Modeling.Data.Type
@@ -24,8 +25,8 @@ data Space a = Space
     , element :: a
     } deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
 
-instance ToJSON a => ToJSON (Space a)
-instance FromJSON a => FromJSON (Space a)
+deriving via (AesonWrapper (Space a)) instance ToJSON a => ToJSON (Space a)
+deriving via (AesonWrapper (Space a)) instance FromJSON a => FromJSON (Space a)
 
 data Signature = Signature
     { inputs :: Maybe (Map ParamName TypeFix)
@@ -33,13 +34,13 @@ data Signature = Signature
     , tydefs :: Maybe (Map TypeName TypeFix)
     } deriving (Generic, Show, Eq)
 
-instance ToJSON Signature
-instance FromJSON Signature
+deriving via (AesonWrapper Signature) instance ToJSON Signature
+deriving via (AesonWrapper Signature) instance FromJSON Signature
 
 data Bundle a = Bundle
     { signature :: Maybe Signature
     , root :: a
     } deriving (Generic, Show, Eq)
 
-instance ToJSON a => ToJSON (Bundle a)
-instance FromJSON a => FromJSON (Bundle a)
+deriving via (AesonWrapper (Bundle a)) instance ToJSON a => ToJSON (Bundle a)
+deriving via (AesonWrapper (Bundle a)) instance FromJSON a => FromJSON (Bundle a)

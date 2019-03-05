@@ -2,10 +2,10 @@ module Modeling.Example where
 
 import Control.Monad.Reader (ask)
 import Control.Monad.Trans (lift)
+import Data.Fix (Fix (..))
 import qualified Data.Map as Map
 import Data.Sequence (fromList)
 import qualified Data.Sequence as Seq
-import Modeling.Data.Fix
 import Modeling.Data.Type
 import Modeling.Ops.Core
 import Modeling.Ops.Ext
@@ -29,7 +29,7 @@ simpleBuilder :: (r ~ Fix (PartialOps d m t), Monad m) => Builder r m t
 simpleBuilder = do
     Fix (PartialOps {..}) <- ask
     lift $ do
-        simpleParam <- (externalOp partialParamOps) mempty "simpleExternalParam" (fixType StringType)
+        simpleParam <- (externalOp partialParamOps) mempty "simpleExternalParam" (TypeFix StringType)
         let simpleOpts = BaseOpts (Map.singleton "simpleParamInternal" simpleParam) Map.empty Seq.empty
         simpleModel <- (directOp partialBaseOps) "simpleNs" simpleOpts "simpleModel"
         (buildOp partialBaseOps) simpleModel

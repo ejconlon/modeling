@@ -2,8 +2,10 @@ module Modeling.Data.Serde where
 
 import Control.Arrow (left)
 import Data.Aeson
+import Data.ByteString.Lazy (toStrict)
 import Data.String (IsString, fromString)
-import Data.Text
+import Data.Text (Text)
+import Data.Text.Encoding (decodeUtf8, encodeUtf8)
 import Data.Yaml (decodeFileEither)
 import Modeling.Data.Bidi
 import Modeling.Data.Util
@@ -16,6 +18,12 @@ import Modeling.Data.Util
 
 -- decodeJsonFile :: IsString e => Injection e a Value -> FilePath -> IO (Either e a)
 -- decodeJsonFile = undefined
+
+encodeJsonText' :: ToJSON a => a -> Text
+encodeJsonText' = decodeUtf8 . toStrict . encode
+
+decodeJsonText' :: (FromJSON a, IsString e) => Text -> Either e a
+decodeJsonText' = (left fromString) . eitherDecodeStrict' . encodeUtf8
 
 decodeJsonFile' :: (FromJSON a, IsString e) => FilePath -> IO (Either e a)
 decodeJsonFile' = (left fromString <$>) . eitherDecodeFileStrict'

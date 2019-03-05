@@ -14,7 +14,9 @@ description: Please see the README on GitHub at <https://github.com/githubuser/m
 dependencies:
 - base >= 4.11 && < 5
 - aeson
+- bytestring
 - containers
+- data-fix
 - lens
 - mtl
 - text
@@ -39,6 +41,7 @@ default-extensions:
   - OverloadedStrings
   - Rank2Types
   - RecordWildCards
+  - StandaloneDeriving
   - TypeFamilies
 
 library:
