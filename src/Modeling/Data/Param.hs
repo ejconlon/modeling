@@ -38,33 +38,25 @@ instance FromJSON ParamCon where
 data LiteralParamAttrs = LiteralParamAttrs
     { value :: Value
     } deriving (Generic, Eq, Show)
-
-deriving via (AesonWrapper LiteralParamAttrs) instance ToJSON LiteralParamAttrs
-deriving via (AesonWrapper LiteralParamAttrs) instance FromJSON LiteralParamAttrs
+      deriving (ToJSON, FromJSON) via (AesonWrapper LiteralParamAttrs)
 
 data ExternalParamAttrs = ExternalParamAttrs
     { ns :: Namespace
     , name :: ParamName
     } deriving (Generic, Eq, Show)
-
-deriving via (AesonWrapper ExternalParamAttrs) instance ToJSON ExternalParamAttrs
-deriving via (AesonWrapper ExternalParamAttrs) instance FromJSON ExternalParamAttrs
+      deriving (ToJSON, FromJSON) via (AesonWrapper ExternalParamAttrs)
 
 data InternalParamAttrs = InternalParamAttrs
     { index :: Int
     } deriving (Generic, Eq, Show)
-
-deriving via (AesonWrapper InternalParamAttrs) instance ToJSON InternalParamAttrs
-deriving via (AesonWrapper InternalParamAttrs) instance FromJSON InternalParamAttrs
+      deriving (ToJSON, FromJSON) via (AesonWrapper InternalParamAttrs)
 
 data ParamAttrs = ParamAttrs
     { literal :: Maybe LiteralParamAttrs
     , external :: Maybe ExternalParamAttrs
     , internal :: Maybe InternalParamAttrs
     } deriving (Generic, Eq, Show)
-
-deriving via (AesonWrapper ParamAttrs) instance ToJSON ParamAttrs
-deriving via (AesonWrapper ParamAttrs) instance FromJSON ParamAttrs
+      deriving (ToJSON, FromJSON) via (AesonWrapper ParamAttrs)
 
 emptyParamAttrs :: ParamAttrs
 emptyParamAttrs = ParamAttrs Nothing Nothing Nothing
@@ -73,9 +65,7 @@ data ParamSum = ParamSum
     { name :: ParamCon
     , attributes :: Maybe ParamAttrs
     } deriving (Generic, Eq, Show)
-
-deriving via (AesonWrapper ParamSum) instance ToJSON ParamSum
-deriving via (AesonWrapper ParamSum) instance FromJSON ParamSum
+      deriving (ToJSON, FromJSON) via (AesonWrapper ParamSum)
 
 paramSumPairBijection :: Bijection ParamSum (ParamCon, Maybe ParamAttrs)
 paramSumPairBijection = Bijection apl inv where

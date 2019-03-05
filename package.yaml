@@ -41,7 +41,6 @@ default-extensions:
   - OverloadedStrings
   - Rank2Types
   - RecordWildCards
-  - StandaloneDeriving
   - TypeFamilies
 
 library:

@@ -67,7 +67,7 @@ serdeCases =
     , SomeSerdeCase (SerdeCase "outerParamAttrs" outerAttrs "{\"internal\":{\"index\":1}}")
     , SomeSerdeCase (SerdeCase "paramSum" paramSum paramSumSource)
     , SomeSerdeCase (SerdeCase "param" param paramSumSource)
-    -- , SomeSerdeCase (SerdeCase "stringType" stringType stringTypeSource)  -- TODO hangs
+    -- , SomeSerdeCase (SerdeCase "stringType" stringType stringTypeSource)  -- TODO undef
     , SomeSerdeCase (SerdeCase "stringTypeSum" stringTypeSum stringTypeSource)
     ] where
         innerAttrs = InternalParamAttrs 1
@@ -76,7 +76,7 @@ serdeCases =
         param = InternalParam innerAttrs
         paramSumSource = "{\"name\":\"internal\",\"attributes\":{\"internal\":{\"index\":1}}}"
         stringType = TypeFix StringType
-        stringTypeSum = Sum "string" Nothing :: Sum (TypeAttrs TypeFix)
+        stringTypeSum = Sum "string" Nothing :: Sum TypeSumFix
         stringTypeSource = "{\"name\":\"string\"}"
 
 test_serde :: TestTree

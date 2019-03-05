@@ -4,7 +4,7 @@ import Data.Aeson
 import Data.Map (Map)
 import Data.Sequence (Seq)
 import Data.Text (Text)
-import GHC.Generics (Generic)
+import GHC.Generics (Generic, Generic1)
 import Modeling.Data.Aeson
 import Modeling.Data.Bidi
 import Modeling.Data.Common
@@ -46,35 +46,27 @@ instance FromJSON ModelCon where
 data ModelDirectAttrs = ModelDirectAttrs
     { name :: Text
     } deriving (Generic, Show, Eq)
-
-deriving via (AesonWrapper ModelDirectAttrs) instance ToJSON ModelDirectAttrs
-deriving via (AesonWrapper ModelDirectAttrs) instance FromJSON ModelDirectAttrs
+      deriving (ToJSON, FromJSON) via (AesonWrapper ModelDirectAttrs)
 
 data ModelSerialAttrs a = ModelSerialAttrs
     { models :: Seq a
-    } deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
-
-deriving via (AesonWrapper (ModelSerialAttrs a)) instance ToJSON a => ToJSON (ModelSerialAttrs a)
-deriving via (AesonWrapper (ModelSerialAttrs a)) instance FromJSON a => FromJSON (ModelSerialAttrs a)
+    } deriving (Generic1, Show, Eq, Functor, Foldable, Traversable)
+      deriving (ToJSON1, FromJSON1) via (AesonWrapper1 ModelSerialAttrs)
 
 data ModelSplitAttrs a = ModelSplitAttrs
     { attribute :: Text
     , values :: Seq Text
     , other :: Maybe Text
     , model :: a
-    } deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
-
-deriving via (AesonWrapper (ModelSplitAttrs a)) instance ToJSON a => ToJSON (ModelSplitAttrs a)
-deriving via (AesonWrapper (ModelSplitAttrs a)) instance FromJSON a => FromJSON (ModelSplitAttrs a)
+    } deriving (Generic1, Show, Eq, Functor, Foldable, Traversable)
+      deriving (ToJSON1, FromJSON1) via (AesonWrapper1 ModelSplitAttrs)
 
 data ModelAttrs a = ModelAttrs
     { direct :: Maybe (ModelDirectAttrs)
     , serial :: Maybe (ModelSerialAttrs a)
     , split :: Maybe (ModelSplitAttrs a)
-    } deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
-
-deriving via (AesonWrapper (ModelAttrs a)) instance ToJSON a => ToJSON (ModelAttrs a)
-deriving via (AesonWrapper (ModelAttrs a)) instance FromJSON a => FromJSON (ModelAttrs a)
+    } deriving (Generic1, Show, Eq, Functor, Foldable, Traversable)
+      deriving (ToJSON1, FromJSON1) via (AesonWrapper1 ModelAttrs)
 
 emptyModelAttrs :: ModelAttrs a
 emptyModelAttrs = ModelAttrs Nothing Nothing Nothing
@@ -82,10 +74,8 @@ emptyModelAttrs = ModelAttrs Nothing Nothing Nothing
 data ModelSum a = ModelSum
     { name :: ModelCon
     , attributes :: Maybe (ModelAttrs a)
-    } deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
-
-deriving via (AesonWrapper (ModelSum a)) instance ToJSON a => ToJSON (ModelSum a)
-deriving via (AesonWrapper (ModelSum a)) instance FromJSON a => FromJSON (ModelSum a)
+    } deriving (Generic1, Show, Eq, Functor, Foldable, Traversable)
+      deriving (ToJSON1, FromJSON1) via (AesonWrapper1 ModelSum)
 
 modelSumPairBijection :: Bijection (ModelSum a) (ModelCon, Maybe (ModelAttrs a))
 modelSumPairBijection = Bijection apl inv where
@@ -118,9 +108,9 @@ modelSumInjection :: Injection ErrorMsg a b -> Injection ErrorMsg (Model a) (Mod
 modelSumInjection rinj = composeInjection (postTraverseInjection rinj (lowerBijection (flipBijection modelSumPairBijection))) modelPairInjection
 
 -- TODO don't use injection composition for this so we can separate classes
-instance (ToJSON a, FromJSON a) => ToJSON (Model a) where
-    toJSON = injectionToJSON (modelSumInjection jsonInjection)
-    toEncoding = injectionToEncoding (modelSumInjection jsonInjection)
+instance ToJSON1 Model where
+    liftToJSON = undefined
+    liftToEncoding = undefined
 
-instance (ToJSON a, FromJSON a) => FromJSON (Model a) where
-    parseJSON = injectionParseJSON renderErrorMsg (modelSumInjection jsonInjection)
+instance FromJSON1 Model where
+    liftParseJSON = undefined

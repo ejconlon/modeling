@@ -1,7 +1,7 @@
 module Modeling.Data.Core where
 
 import Data.Aeson
-import GHC.Generics (Generic)
+import GHC.Generics (Generic, Generic1)
 import Data.Map (Map)
 import Data.Sequence (Seq)
 import Data.Text (Text)
@@ -15,32 +15,24 @@ data Connection a = Connection
     , inputs :: Maybe (Map ParamName Param)
     , named :: Maybe (Map ElementName a)
     , additional :: Maybe (Seq a)
-    } deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
-
-instance ToJSON a => ToJSON (Connection a)
-instance FromJSON a => FromJSON (Connection a)
+    } deriving (Generic1, Show, Eq, Functor, Foldable, Traversable)
+      deriving (ToJSON1, FromJSON1) via (AesonWrapper1 Connection)
 
 data Space a = Space
     { connection :: Connection a
     , element :: a
-    } deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
-
-deriving via (AesonWrapper (Space a)) instance ToJSON a => ToJSON (Space a)
-deriving via (AesonWrapper (Space a)) instance FromJSON a => FromJSON (Space a)
+    } deriving (Generic1, Show, Eq, Functor, Foldable, Traversable)
+      deriving (ToJSON1, FromJSON1) via (AesonWrapper1 Space)
 
 data Signature = Signature
     { inputs :: Maybe (Map ParamName TypeFix)
     , outputs :: Maybe (Map ParamName TypeFix)
     , tydefs :: Maybe (Map TypeName TypeFix)
     } deriving (Generic, Show, Eq)
-
-deriving via (AesonWrapper Signature) instance ToJSON Signature
-deriving via (AesonWrapper Signature) instance FromJSON Signature
+      deriving (ToJSON, FromJSON) via (AesonWrapper Signature)
 
 data Bundle a = Bundle
     { signature :: Maybe Signature
     , root :: a
-    } deriving (Generic, Show, Eq)
-
-deriving via (AesonWrapper (Bundle a)) instance ToJSON a => ToJSON (Bundle a)
-deriving via (AesonWrapper (Bundle a)) instance FromJSON a => FromJSON (Bundle a)
+    } deriving (Generic1, Show, Eq)
+      deriving (ToJSON1, FromJSON1) via (AesonWrapper1 Bundle)
