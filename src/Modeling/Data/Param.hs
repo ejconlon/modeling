@@ -30,6 +30,7 @@ paramConToText = Injection apply invert where
 
 instance ToJSON ParamCon where
     toJSON = injectionToJSON paramConToText
+    toEncoding = injectionToEncoding paramConToText
 
 instance FromJSON ParamCon where
     parseJSON = injectionParseJSON renderErrorMsg paramConToText
@@ -108,6 +109,7 @@ paramInjection = composeLeft (flipBijection paramSumPairBijection) paramPairInje
 
 instance ToJSON Param where
     toJSON = injectionToJSON paramInjection
+    toEncoding = injectionToEncoding paramInjection
 
 instance FromJSON Param where
     parseJSON = injectionParseJSON renderErrorMsg paramInjection

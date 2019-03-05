@@ -25,7 +25,10 @@ jsonInjection = Injection toJSON inv where
             Right a -> Right a
 
 injectionToJSON :: ToJSON b => Injection e a b -> a -> Value
-injectionToJSON (Injection { injApply }) a = toJSON (injApply a)
+injectionToJSON (Injection { injApply }) = toJSON . injApply
+
+injectionToEncoding :: ToJSON b => Injection e a b -> a -> Encoding
+injectionToEncoding (Injection { injApply }) = toEncoding . injApply
 
 injectionParseJSON :: FromJSON b => (e -> String) -> Injection e a b -> Value -> Parser a
 injectionParseJSON render (Injection { injInvert }) v = do

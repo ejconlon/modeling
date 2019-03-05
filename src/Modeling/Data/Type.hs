@@ -6,6 +6,7 @@ import Data.Sequence (Seq)
 import Data.Text (Text)
 import qualified Data.Text as T
 import GHC.Generics (Generic)
+import Modeling.Data.Aeson
 import Modeling.Data.Bidi
 import Modeling.Data.Common
 import Modeling.Data.Util
@@ -59,6 +60,7 @@ typeConToText = Injection apply invert where
 
 instance ToJSON TypeCon where
     toJSON = injectionToJSON typeConToText
+    toEncoding = injectionToEncoding typeConToText
 
 instance FromJSON TypeCon where
     parseJSON = injectionParseJSON renderErrorMsg typeConToText
@@ -67,36 +69,36 @@ data TypeSingleAttrs a = TypeSingleAttrs
     { ty :: a
     } deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
 
-instance ToJSON a => ToJSON (TypeSingleAttrs a)
-instance FromJSON a => FromJSON (TypeSingleAttrs a)
+deriving via (AesonWrapper (TypeSingleAttrs a)) instance ToJSON a => ToJSON (TypeSingleAttrs a)
+deriving via (AesonWrapper (TypeSingleAttrs a)) instance FromJSON a => FromJSON (TypeSingleAttrs a)
 
 data TypeReferenceAttrs = TypeReferenceAttrs
     { name :: Text
     } deriving (Generic, Show, Eq)
 
-instance ToJSON TypeReferenceAttrs
-instance FromJSON TypeReferenceAttrs
+deriving via (AesonWrapper TypeReferenceAttrs) instance ToJSON TypeReferenceAttrs
+deriving via (AesonWrapper TypeReferenceAttrs) instance FromJSON TypeReferenceAttrs
 
 data TypeStructAttrs a = TypeStructAttrs
     { fields :: Map Text a
     } deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
 
-instance ToJSON a => ToJSON (TypeStructAttrs a)
-instance FromJSON a => FromJSON (TypeStructAttrs a)
+deriving via (AesonWrapper (TypeStructAttrs a)) instance ToJSON a => ToJSON (TypeStructAttrs a)
+deriving via (AesonWrapper (TypeStructAttrs a)) instance FromJSON a => FromJSON (TypeStructAttrs a)
 
 data TypeEnumAttrs = TypeEnumAttrs
     { values :: Seq Text
     } deriving (Generic, Show, Eq)
 
-instance ToJSON TypeEnumAttrs
-instance FromJSON TypeEnumAttrs
+deriving via (AesonWrapper TypeEnumAttrs) instance ToJSON TypeEnumAttrs
+deriving via (AesonWrapper TypeEnumAttrs) instance FromJSON TypeEnumAttrs
 
 data TypeUnionAttrs a = TypeUnionAttrs
     { elements :: Map Text a
     } deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
 
-instance ToJSON a => ToJSON (TypeUnionAttrs a)
-instance FromJSON a => FromJSON (TypeUnionAttrs a)
+deriving via (AesonWrapper (TypeUnionAttrs a)) instance ToJSON a => ToJSON (TypeUnionAttrs a)
+deriving via (AesonWrapper (TypeUnionAttrs a)) instance FromJSON a => FromJSON (TypeUnionAttrs a)
 
 data TypeAttrs a = TypeAttrs
     { optional :: Maybe (TypeSingleAttrs a)
@@ -111,16 +113,16 @@ data TypeAttrs a = TypeAttrs
 emptyTypeAttrs :: TypeAttrs a
 emptyTypeAttrs = TypeAttrs Nothing Nothing Nothing Nothing Nothing Nothing Nothing
 
-instance ToJSON a => ToJSON (TypeAttrs a)
-instance FromJSON a => FromJSON (TypeAttrs a)
+deriving via (AesonWrapper (TypeAttrs a)) instance ToJSON a => ToJSON (TypeAttrs a)
+deriving via (AesonWrapper (TypeAttrs a)) instance FromJSON a => FromJSON (TypeAttrs a)
 
 data TypeSum a = TypeSum
     { name :: TypeCon
     , attributes :: Maybe (TypeAttrs a)
     } deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
 
-instance ToJSON a => ToJSON (TypeSum a)
-instance FromJSON a => FromJSON (TypeSum a)
+deriving via (AesonWrapper (TypeSum a)) instance ToJSON a => ToJSON (TypeSum a)
+deriving via (AesonWrapper (TypeSum a)) instance FromJSON a => FromJSON (TypeSum a)
 
 typeSumPairBijection :: Bijection (TypeSum a) (TypeCon, Maybe (TypeAttrs a))
 typeSumPairBijection = Bijection apl inv where
@@ -132,7 +134,9 @@ typeSumSumInjection = domainInjection' typeConToText typeSumPairBijection
 
 newtype TypeSumFix = TypeSumFix { unTypeSumFix :: TypeSum TypeSumFix }
     deriving (Generic, Show, Eq)
-    deriving (ToJSON, FromJSON) via (TypeSum TypeSumFix)
+
+deriving via (AesonWrapper (TypeSum TypeSumFix)) instance ToJSON TypeSumFix
+deriving via (AesonWrapper (TypeSum TypeSumFix)) instance FromJSON TypeSumFix
 
 typeSumFixBijection :: Bijection (TypeSum TypeSumFix) TypeSumFix
 typeSumFixBijection = Bijection TypeSumFix unTypeSumFix
@@ -198,6 +202,7 @@ typeFixInjection =
 
 instance ToJSON TypeFix where
     toJSON = injectionToJSON typeFixInjection
+    toEncoding = injectionToEncoding typeFixInjection
 
 instance FromJSON TypeFix where
     parseJSON = injectionParseJSON renderErrorMsg typeFixInjection
