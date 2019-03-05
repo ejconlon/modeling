@@ -114,3 +114,10 @@ modelPairInjection = Injection apl inv where
 
 modelSumInjection :: Injection ErrorMsg a b -> Injection ErrorMsg (Model a) (ModelSum b)
 modelSumInjection rinj = composeInjection (postTraverseInjection rinj (lowerBijection (flipBijection modelSumPairBijection))) modelPairInjection
+
+-- TODO don't use injection composition for this so we can separate classes
+instance (ToJSON a, FromJSON a) => ToJSON (Model a) where
+    toJSON = injectionToJSON (modelSumInjection jsonInjection)
+
+instance (ToJSON a, FromJSON a) => FromJSON (Model a) where
+    parseJSON = injectionParseJSON renderErrorMsg (modelSumInjection jsonInjection)

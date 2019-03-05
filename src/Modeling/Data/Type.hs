@@ -131,10 +131,9 @@ typeSumPairBijection = Bijection apl inv where
 typeSumSumInjection :: Injection ErrorMsg (TypeSum a) (Sum (TypeAttrs a))
 typeSumSumInjection = domainInjection' typeConToText typeSumPairBijection
 
-newtype TypeSumFix = TypeSumFix { unTypeSumFix :: Fix TypeSum } deriving (Generic, Show, Eq)
-
-instance ToJSON TypeSumFix
-instance FromJSON TypeSumFix
+newtype TypeSumFix = TypeSumFix { unTypeSumFix :: Fix TypeSum }
+    deriving (Generic, Show, Eq)
+    deriving (ToJSON, FromJSON) via (Fix TypeSum)
 
 typeSumFixBijection :: Bijection (TypeSum (Fix TypeSum)) TypeSumFix
 typeSumFixBijection = Bijection (TypeSumFix . Fix) (unFix . unTypeSumFix)

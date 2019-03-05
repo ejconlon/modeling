@@ -1,0 +1,22 @@
+{
+	"signature": {
+		"inputs": {
+			"whatever": {
+				"ty": {
+					"name": "string"
+				}
+			}
+		}
+	},
+	"root": {
+		"connection": {
+			"nspart": "whatever"
+		},
+		"element": {
+			"name": "direct",
+			"direct": {
+				"name": "something"
+			}
+		}
+	}
+}

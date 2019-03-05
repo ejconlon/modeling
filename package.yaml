@@ -28,6 +28,8 @@ default-extensions:
   - DeriveFoldable
   - DeriveGeneric
   - DeriveTraversable
+  - DerivingStrategies
+  - DerivingVia
   - DuplicateRecordFields
   - FlexibleContexts
   - FlexibleInstances

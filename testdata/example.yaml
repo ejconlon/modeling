@@ -1,8 +1,6 @@
-interface:
-  params:
-    - ns:
-        - onelevel
-      name: whatever
+signature:
+  inputs:
+    whatever:
       ty:
         name: string
 root:

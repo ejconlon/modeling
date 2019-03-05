@@ -1,9 +1,10 @@
 module Modeling.Data.Serde where
 
+import Control.Arrow (left)
 import Data.Aeson
 import Data.String (IsString, fromString)
 import Data.Text
-import Data.Yaml
+import Data.Yaml (decodeFileEither)
 import Modeling.Data.Bidi
 import Modeling.Data.Util
 
@@ -16,8 +17,8 @@ import Modeling.Data.Util
 -- decodeJsonFile :: IsString e => Injection e a Value -> FilePath -> IO (Either e a)
 -- decodeJsonFile = undefined
 
-decodeJsonFile' :: FromJSON a => FilePath -> IO (Either String a)
-decodeJsonFile' = eitherDecodeFileStrict'
+decodeJsonFile' :: (FromJSON a, IsString e) => FilePath -> IO (Either e a)
+decodeJsonFile' = (left fromString <$>) . eitherDecodeFileStrict'
 
 -- yamlTextInjection :: IsString e => Injection e a Value -> Injection e a Text
 -- yamlTextInjection = undefined
@@ -28,5 +29,5 @@ decodeJsonFile' = eitherDecodeFileStrict'
 -- decodeYamlFile :: IsString e => Injection e a Value -> FilePath -> IO (Either e a)
 -- decodeYamlFile = undefined
 
-decodeYamlFile' :: FromJSON a => FilePath -> IO (Either ParseException a)
-decodeYamlFile' = decodeFileEither
+decodeYamlFile' :: (FromJSON a, IsString e) => FilePath -> IO (Either e a)
+decodeYamlFile' = (left (fromString . show) <$>) . decodeFileEither
