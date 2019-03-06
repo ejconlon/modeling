@@ -6,6 +6,8 @@ import Data.Aeson
 import qualified Data.Map as Map
 import Data.Text (Text)
 import qualified Data.Text as T
+import GHC.Generics
+import Modeling.Data.Aeson
 import Modeling.Data.Core
 import Modeling.Data.Model
 import Modeling.Data.Outside
@@ -44,10 +46,11 @@ test_something = testCase "something" $ do
 --     -- actual <- decodeYamlFile' "testdata/example.yaml"
 --     actual @?= Right expected
 
-data SerdeCase a = SerdeCase { name :: Text, value :: a, source :: Text }
+data SerdeCase a = SerdeCase { name :: Text, value :: a, source :: Text } deriving (Functor)
 
 data SomeSerdeCase where
     SomeSerdeCase :: (Eq a, Show a, ToJSON a, FromJSON a) => SerdeCase a -> SomeSerdeCase
+    SomeSerdeCase1 :: (Eq (f a), Show (f a), ToJSON1 f, FromJSON1 f, ToJSON a, FromJSON a) => SerdeCase (f a) -> SomeSerdeCase
 
 runSerdeCase :: (Eq a, Show a, ToJSON a, FromJSON a) => SerdeCase a -> TestTree
 runSerdeCase (SerdeCase name value source) = testCase (T.unpack name) $ do
@@ -56,19 +59,25 @@ runSerdeCase (SerdeCase name value source) = testCase (T.unpack name) $ do
     let actualValue = decodeJsonText' source
     actualValue @?= Right value
 
+runSerdeCase1 :: (Eq (f a), Show (f a), ToJSON1 f, FromJSON1 f, ToJSON a, FromJSON a) => SerdeCase (f a) -> TestTree
+runSerdeCase1 = runSerdeCase . (AesonWrapperApp <$>)
+
 runSomeSerdeCase :: SomeSerdeCase -> TestTree
 runSomeSerdeCase (SomeSerdeCase serdeCase) = runSerdeCase serdeCase
+runSomeSerdeCase (SomeSerdeCase1 serdeCase) = runSerdeCase1 serdeCase
 
 serdeCases :: [SomeSerdeCase]
 serdeCases =
-    [ SomeSerdeCase (SerdeCase "sumNothing" (Sum "hi" (Nothing :: Maybe Int)) "{\"name\":\"hi\"}")
-    , SomeSerdeCase (SerdeCase "sumJust" (Sum "hi" (Just 1 :: Maybe Int)) "{\"name\":\"hi\",\"attributes\":{\"hi\":1}}")
-    , SomeSerdeCase (SerdeCase "innerParamAttrs" innerAttrs "{\"index\":1}")
-    , SomeSerdeCase (SerdeCase "outerParamAttrs" outerAttrs "{\"internal\":{\"index\":1}}")
-    , SomeSerdeCase (SerdeCase "paramSum" paramSum paramSumSource)
-    , SomeSerdeCase (SerdeCase "param" param paramSumSource)
+    [ SomeSerdeCase1 (SerdeCase "rawSumNothing" (RawSum "hi" Nothing :: RawSum Int) "{\"name\":\"hi\"}")
+    , SomeSerdeCase1 (SerdeCase "rawSumJust" (RawSum "hi" (Just 1) :: RawSum Int) "{\"name\":\"hi\",\"attributes\":1}")
+    , SomeSerdeCase1 (SerdeCase "sumNothing" (Sum "hi" Nothing :: Sum Int) "{\"name\":\"hi\"}")
+    , SomeSerdeCase1 (SerdeCase "sumJust" (Sum "hi" (Just 1) :: Sum Int) "{\"name\":\"hi\",\"attributes\":{\"hi\":1}}")
+    , SomeSerdeCase  (SerdeCase "innerParamAttrs" innerAttrs "{\"index\":1}")
+    , SomeSerdeCase  (SerdeCase "outerParamAttrs" outerAttrs "{\"internal\":{\"index\":1}}")
+    , SomeSerdeCase1 (SerdeCase "paramSum" paramSum paramSumSource)
+    , SomeSerdeCase  (SerdeCase "param" param paramSumSource)
     -- , SomeSerdeCase (SerdeCase "stringType" stringType stringTypeSource)  -- TODO undef
-    , SomeSerdeCase (SerdeCase "stringTypeSum" stringTypeSum stringTypeSource)
+    -- , SomeSerdeCase (SerdeCase "stringTypeSum" stringTypeSum stringTypeSource)
     ] where
         innerAttrs = InternalParamAttrs 1
         outerAttrs = emptyParamAttrs { internal = Just innerAttrs }

@@ -1,6 +1,7 @@
 module Modeling.Data.Util where
 
 import Data.Aeson
+import Data.Aeson.Encoding.Internal (pair)
 import Data.Aeson.Types (Parser, parseEither)
 import qualified Data.HashMap.Strict as HM
 import Data.Map (Map)
@@ -8,7 +9,8 @@ import Data.String (IsString, fromString)
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Void (Void)
-import GHC.Generics (Generic)
+import GHC.Generics (Generic, Generic1)
+import Modeling.Data.Aeson
 import Modeling.Data.Bidi
 
 -- Aeson errors are stringy
@@ -37,19 +39,45 @@ injectionParseJSON render (Injection { injInvert }) v = do
         Right a -> pure a
         Left e -> fail (render e)
 
-data Sum a = Sum Text (Maybe a) deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
+data RawSum a = RawSum { name :: Text, attributes :: (Maybe a) }
+    deriving (Generic1, Show, Eq, Functor, Foldable, Traversable)
 
--- TODO Pull Sum instance code into this and use this in them
--- sumInjection :: Injection e a Value -> Injection e (Sum a) Value
--- sumInjection (Injection innerApl innerInj) = Injection outerApl outerInj where
---     outerApl = undefined
---     innerApl = undefined
+instance ToJSON1 RawSum where
+    liftToJSON tv _ (RawSum n ma) =
+        object (("name" .= n):(maybe [] (\a -> ["attributes" .= tv a]) ma))
+    liftToEncoding tv _ (RawSum n ma) =
+        let s = "name" .= n
+            t = case ma of
+                    Nothing -> mempty
+                    Just a -> pair "attributes" (tv a)
+        in pairs (s <> t)
 
-instance ToJSON a => ToJSON (Sum a) where
-    toJSON (Sum n ma) = object (("name" .= n):(maybe [] (\a -> ["attributes" .= object [n .= a]]) ma))
+instance FromJSON1 RawSum where
+    liftParseJSON pv _ = withObject "RawSum" $ \v -> do
+        n <- v .: "name"
+        ma <- v .:? "attributes"
+        case ma of
+            Nothing -> pure (RawSum n Nothing)
+            Just a -> do
+                b <- pv a
+                pure (RawSum n (Just b))
 
-instance FromJSON a => FromJSON (Sum a) where
-    parseJSON = withObject "Sum" $ \v -> do
+data Sum a = Sum Text (Maybe a) deriving (Generic1, Show, Eq, Functor, Foldable, Traversable)
+
+instance ToJSON1 Sum where
+    liftToJSON tv _ (Sum n ma) =
+        object (("name" .= n):(maybe [] (\a -> ["attributes" .= object [n .= tv a]]) ma))
+    liftToEncoding tv _ (Sum n ma) =
+        let s = "name" .= n
+            t = case ma of
+                    Nothing -> mempty
+                    Just a ->
+                        let u = pair n (tv a)
+                        in pair "attributes" (pairs u)
+        in pairs (s <> t)
+
+instance FromJSON1 Sum where
+    liftParseJSON pv _ = withObject "Sum" $ \v -> do
         n <- v .: "name"
         mo <- v .:? "attributes"
         case mo of
@@ -57,7 +85,10 @@ instance FromJSON a => FromJSON (Sum a) where
             Just o ->
                 if HM.size o /= 1
                     then fail ("Too many branches in sum for " <> T.unpack n)
-                    else Sum n <$> o .: n
+                    else do
+                        a <- o .: n
+                        b <- pv a
+                        pure (Sum n (Just b))
 
 data DomainInjectionError ne ae = DomainNameError ne | DomainAttributesError ae deriving (Generic, Eq, Show)
 
