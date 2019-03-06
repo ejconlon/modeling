@@ -4,8 +4,7 @@ import Data.Aeson
 import Data.Map (Map)
 import Data.Sequence (Seq)
 import Data.Text (Text)
-import Data.Vector (fromList)
-import GHC.Generics (Generic, Generic1)
+import GHC.Generics (Generic)
 import Modeling.Data.Aeson
 import Modeling.Data.Bidi
 import Modeling.Data.Common
@@ -51,23 +50,29 @@ data ModelDirectAttrs = ModelDirectAttrs
 
 data ModelSerialAttrs a = ModelSerialAttrs
     { models :: Seq a
-    } deriving (Generic1, Show, Eq, Functor, Foldable, Traversable)
-      deriving (ToJSON1, FromJSON1) via (AesonWrapper1 ModelSerialAttrs)
+    } deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
+
+deriving via (AesonWrapper (ModelSerialAttrs a)) instance ToJSON a => ToJSON (ModelSerialAttrs a)
+deriving via (AesonWrapper (ModelSerialAttrs a)) instance FromJSON a => FromJSON (ModelSerialAttrs a)
 
 data ModelSplitAttrs a = ModelSplitAttrs
     { attribute :: Text
     , values :: Seq Text
     , other :: Maybe Text
     , model :: a
-    } deriving (Generic1, Show, Eq, Functor, Foldable, Traversable)
-      deriving (ToJSON1, FromJSON1) via (AesonWrapper1 ModelSplitAttrs)
+    } deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
+
+deriving via (AesonWrapper (ModelSplitAttrs a)) instance ToJSON a => ToJSON (ModelSplitAttrs a)
+deriving via (AesonWrapper (ModelSplitAttrs a)) instance FromJSON a => FromJSON (ModelSplitAttrs a)
 
 data ModelAttrs a = ModelAttrs
     { direct :: Maybe (ModelDirectAttrs)
     , serial :: Maybe (ModelSerialAttrs a)
     , split :: Maybe (ModelSplitAttrs a)
-    } deriving (Generic1, Show, Eq, Functor, Foldable, Traversable)
-      deriving (ToJSON1, FromJSON1) via (AesonWrapper1 ModelAttrs)
+    } deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
+
+deriving via (AesonWrapper (ModelAttrs a)) instance ToJSON a => ToJSON (ModelAttrs a)
+deriving via (AesonWrapper (ModelAttrs a)) instance FromJSON a => FromJSON (ModelAttrs a)
 
 emptyModelAttrs :: ModelAttrs a
 emptyModelAttrs = ModelAttrs Nothing Nothing Nothing
@@ -75,8 +80,10 @@ emptyModelAttrs = ModelAttrs Nothing Nothing Nothing
 data ModelSum a = ModelSum
     { name :: ModelCon
     , attributes :: Maybe (ModelAttrs a)
-    } deriving (Generic1, Show, Eq, Functor, Foldable, Traversable)
-      deriving (ToJSON1, FromJSON1) via (AesonWrapper1 ModelSum)
+    } deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
+
+deriving via (AesonWrapper (ModelSum a)) instance ToJSON a => ToJSON (ModelSum a)
+deriving via (AesonWrapper (ModelSum a)) instance FromJSON a => FromJSON (ModelSum a)
 
 data Model a =
       DirectModel ModelDirectAttrs
@@ -98,9 +105,9 @@ modelFromPair (ModelSum n ma) = f ma where
         SerialModelCon -> withAttrs serial SerialModel
         SplitModelCon -> withAttrs split SplitModel
 
-instance ToJSON1 Model where
-    liftToJSON tv tvl = liftToJSON tv tvl . modelToPair
-    liftToEncoding tv tvl = liftToEncoding tv tvl . modelToPair
+instance ToJSON a => ToJSON (Model a) where
+    toJSON = toJSON . modelToPair
+    toEncoding = toEncoding . modelToPair
 
-instance FromJSON1 Model where
-    liftParseJSON tv tvl = liftParser renderErrorMsg modelFromPair . liftParseJSON tv tvl
+instance FromJSON a => FromJSON (Model a) where
+    parseJSON = liftParser renderErrorMsg modelFromPair . parseJSON

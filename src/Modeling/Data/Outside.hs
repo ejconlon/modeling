@@ -1,18 +1,29 @@
 module Modeling.Data.Outside where
 
+import Control.Newtype.Generics
 import Data.Aeson
+import GHC.Generics (Generic)
 import Modeling.Data.Aeson
 import Modeling.Data.Core
 import Modeling.Data.Model
 
 newtype ModelSpace a = ModelSpace { unModelSpace :: Space (Model a) }
-    deriving (Eq, Show, Functor, Foldable, Traversable)
-    deriving (ToJSON1, FromJSON1) via (AesonWrapperComp Space Model)
+    deriving (Generic, Eq, Show, Functor, Foldable, Traversable)
+
+instance Newtype (ModelSpace a)
+deriving via (AesonNewtype (ModelSpace a) (Space (Model a))) instance ToJSON a => ToJSON (ModelSpace a)
+deriving via (AesonNewtype (ModelSpace a) (Space (Model a))) instance FromJSON a => FromJSON (ModelSpace a)
 
 newtype ModelSpaceFix = ModelSpaceFix { unModelSpaceFix :: ModelSpace ModelSpaceFix }
-    deriving (Eq, Show)
-    deriving (ToJSON, FromJSON) via (AesonWrapperApp ModelSpace ModelSpaceFix)
+    deriving (Generic, Eq, Show)
+
+instance Newtype ModelSpaceFix
+deriving via (AesonNewtype ModelSpaceFix (ModelSpace ModelSpaceFix)) instance ToJSON ModelSpaceFix
+deriving via (AesonNewtype ModelSpaceFix (ModelSpace ModelSpaceFix)) instance FromJSON ModelSpaceFix
 
 newtype ModelSpaceBundle = ModelSpaceBundle { unModelSpaceBundle :: Bundle ModelSpaceFix }
-    deriving (Eq, Show)
-    deriving (ToJSON, FromJSON) via (AesonWrapperApp Bundle ModelSpaceFix)
+    deriving (Generic, Eq, Show)
+
+instance Newtype ModelSpaceBundle
+deriving via (AesonNewtype ModelSpaceBundle (Bundle ModelSpaceFix)) instance ToJSON ModelSpaceBundle
+deriving via (AesonNewtype ModelSpaceBundle (Bundle ModelSpaceFix)) instance FromJSON ModelSpaceBundle

@@ -1,11 +1,14 @@
+{-# LANGUAGE UndecidableInstances #-}
+
 module Modeling.Data.Type where
 
+import Control.Newtype.Generics (Newtype)
 import Data.Aeson
 import Data.Map (Map)
 import Data.Sequence (Seq)
 import Data.Text (Text)
 import qualified Data.Text as T
-import GHC.Generics (Generic, Generic1)
+import GHC.Generics (Generic)
 import Modeling.Data.Aeson
 import Modeling.Data.Bidi
 import Modeling.Data.Common
@@ -67,8 +70,10 @@ instance FromJSON TypeCon where
 
 data TypeSingleAttrs a = TypeSingleAttrs
     { ty :: a
-    } deriving (Generic1, Show, Eq, Functor, Foldable, Traversable)
-      deriving (ToJSON1, FromJSON1) via (AesonWrapper1 TypeSingleAttrs)
+    } deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
+
+deriving via (AesonWrapper (TypeSingleAttrs a)) instance ToJSON a => ToJSON (TypeSingleAttrs a)
+deriving via (AesonWrapper (TypeSingleAttrs a)) instance FromJSON a => FromJSON (TypeSingleAttrs a)
 
 data TypeReferenceAttrs = TypeReferenceAttrs
     { name :: Text
@@ -77,8 +82,10 @@ data TypeReferenceAttrs = TypeReferenceAttrs
 
 data TypeStructAttrs a = TypeStructAttrs
     { fields :: Map Text a
-    } deriving (Generic1, Show, Eq, Functor, Foldable, Traversable)
-      deriving (ToJSON1, FromJSON1) via (AesonWrapper1 TypeStructAttrs)
+    } deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
+
+deriving via (AesonWrapper (TypeStructAttrs a)) instance ToJSON a => ToJSON (TypeStructAttrs a)
+deriving via (AesonWrapper (TypeStructAttrs a)) instance FromJSON a => FromJSON (TypeStructAttrs a)
 
 data TypeEnumAttrs = TypeEnumAttrs
     { values :: Seq Text
@@ -87,8 +94,10 @@ data TypeEnumAttrs = TypeEnumAttrs
 
 data TypeUnionAttrs a = TypeUnionAttrs
     { elements :: Map Text a
-    } deriving (Generic1, Show, Eq, Functor, Foldable, Traversable)
-      deriving (ToJSON1, FromJSON1) via (AesonWrapper1 TypeUnionAttrs)
+    } deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
+
+deriving via (AesonWrapper (TypeUnionAttrs a)) instance ToJSON a => ToJSON (TypeUnionAttrs a)
+deriving via (AesonWrapper (TypeUnionAttrs a)) instance FromJSON a => FromJSON (TypeUnionAttrs a)
 
 data TypeAttrs a = TypeAttrs
     { optional :: Maybe (TypeSingleAttrs a)
@@ -98,8 +107,10 @@ data TypeAttrs a = TypeAttrs
     , reference :: Maybe TypeReferenceAttrs
     , enum :: Maybe TypeEnumAttrs
     , union :: Maybe (TypeUnionAttrs a)
-    } deriving (Generic1, Show, Eq, Functor, Foldable, Traversable)
-      deriving (ToJSON1, FromJSON1) via (AesonWrapper1 TypeAttrs)
+    } deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
+
+deriving via (AesonWrapper (TypeAttrs a)) instance ToJSON a => ToJSON (TypeAttrs a)
+deriving via (AesonWrapper (TypeAttrs a)) instance FromJSON a => FromJSON (TypeAttrs a)
 
 emptyTypeAttrs :: TypeAttrs a
 emptyTypeAttrs = TypeAttrs Nothing Nothing Nothing Nothing Nothing Nothing Nothing
@@ -107,12 +118,17 @@ emptyTypeAttrs = TypeAttrs Nothing Nothing Nothing Nothing Nothing Nothing Nothi
 data TypeSum a = TypeSum
     { name :: TypeCon
     , attributes :: Maybe (TypeAttrs a)
-    } deriving (Generic1, Show, Eq, Functor, Foldable, Traversable)
-      deriving (ToJSON1, FromJSON1) via (AesonWrapper1 TypeSum)
+    } deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
+
+deriving via (AesonWrapper (TypeSum a)) instance ToJSON a => ToJSON (TypeSum a)
+deriving via (AesonWrapper (TypeSum a)) instance FromJSON a => FromJSON (TypeSum a)
 
 newtype TypeSumFix = TypeSumFix { unTypeSumFix :: TypeSum TypeSumFix }
-    deriving (Show, Eq)
-    deriving (ToJSON, FromJSON) via (AesonWrapperApp TypeSum TypeSumFix)
+    deriving (Generic, Show, Eq)
+
+instance Newtype TypeSumFix
+deriving via (AesonNewtype TypeSumFix (TypeSum TypeSumFix)) instance ToJSON TypeSumFix
+deriving via (AesonNewtype TypeSumFix (TypeSum TypeSumFix)) instance FromJSON TypeSumFix
 
 data Type a =
     StringType
@@ -127,7 +143,7 @@ data Type a =
   | EnumType TypeEnumAttrs
   | UnionType (TypeUnionAttrs a)
   | AnyType
-  deriving (Generic1, Show, Eq, Functor, Foldable, Traversable)
+  deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
 
 typeToPair :: Type a -> TypeSum a
 typeToPair t =
@@ -161,13 +177,16 @@ typeFromPair (TypeSum n ma) = f ma where
         UnionTypeCon -> withAttrs union UnionType
         AnyTypeCon -> withoutAttrs AnyType
 
-instance ToJSON1 Type where
-    liftToJSON tv tvl = liftToJSON tv tvl . typeToPair
-    liftToEncoding tv tvl = liftToEncoding tv tvl . typeToPair
+instance ToJSON a => ToJSON (Type a) where
+    toJSON = toJSON . typeToPair
+    toEncoding = toEncoding . typeToPair
 
-instance FromJSON1 Type where
-    liftParseJSON tv tvl = liftParser renderErrorMsg typeFromPair . liftParseJSON tv tvl
+instance FromJSON a => FromJSON (Type a) where
+    parseJSON = liftParser renderErrorMsg typeFromPair . parseJSON
 
 newtype TypeFix = TypeFix { unTypeFix :: Type TypeFix }
-    deriving (Show, Eq)
-    deriving (ToJSON, FromJSON) via (AesonWrapperApp Type TypeFix)
+    deriving (Generic, Show, Eq)
+
+instance Newtype TypeFix
+deriving via (AesonNewtype TypeFix (Type TypeFix)) instance ToJSON TypeFix
+deriving via (AesonNewtype TypeFix (Type TypeFix)) instance FromJSON TypeFix

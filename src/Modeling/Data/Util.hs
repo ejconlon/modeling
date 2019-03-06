@@ -41,20 +41,20 @@ injectionParseJSON render Injection { injInvert } v = do
 
 data Sum a = Sum Text (Maybe a) deriving (Show, Eq, Functor, Foldable, Traversable)
 
-instance ToJSON1 Sum where
-    liftToJSON tv _ (Sum n ma) =
-        object (("name" .= n):maybe [] (\a -> ["attributes" .= object [n .= tv a]]) ma)
-    liftToEncoding tv _ (Sum n ma) =
+instance ToJSON a => ToJSON (Sum a) where
+    toJSON (Sum n ma) =
+        object (("name" .= n):maybe [] (\a -> ["attributes" .= object [n .= a]]) ma)
+    toEncoding (Sum n ma) =
         let s = "name" .= n
             t = case ma of
                     Nothing -> mempty
                     Just a ->
-                        let u = pair n (tv a)
+                        let u = pair n (toEncoding a)
                         in pair "attributes" (pairs u)
         in pairs (s <> t)
 
-instance FromJSON1 Sum where
-    liftParseJSON pv _ = withObject "Sum" $ \v -> do
+instance FromJSON a => FromJSON (Sum a) where
+    parseJSON = withObject "Sum" $ \v -> do
         n <- v .: "name"
         mo <- v .:? "attributes"
         case mo of
@@ -64,7 +64,7 @@ instance FromJSON1 Sum where
                     then fail ("Too many branches in sum for " <> T.unpack n)
                     else do
                         a <- o .: n
-                        b <- pv a
+                        b <- parseJSON a
                         pure (Sum n (Just b))
 
 data DomainInjectionError ne ae = DomainNameError ne | DomainAttributesError ae deriving (Generic, Eq, Show)
@@ -95,7 +95,7 @@ domainInjection' ninj abij = injectionMapError onlyNameError (domainInjection ni
 simpleDomainInjection :: Injection ae a (Text, Maybe b) -> Injection ae a (Sum b)
 simpleDomainInjection = injectionMapError onlyAttributesError . domainInjection idInjection
 
--- type DomainErrorMsg = DomainInjectionError ErrorMsg ErrorMsg
+type DomainErrorMsg = DomainInjectionError ErrorMsg ErrorMsg
 
 missingAttrs, unexpectedAttrs :: ErrorMsg
 missingAttrs = ErrorMsg "Missing attrs"

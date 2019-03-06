@@ -19,6 +19,7 @@ dependencies:
 - data-fix
 - lens
 - mtl
+- newtype-generics
 - text
 - transformers
 - unordered-containers
@@ -41,6 +42,7 @@ default-extensions:
   - OverloadedStrings
   - Rank2Types
   - RecordWildCards
+  - StandaloneDeriving
   - TypeFamilies
 
 library:
