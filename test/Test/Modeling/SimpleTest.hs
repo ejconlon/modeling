@@ -25,27 +25,25 @@ test_something = testCase "something" $ do
         expected = 2
     actual @?= expected
 
--- test_example :: TestTree
--- test_example = testCase "example" $ do
---     let expected = ModelSpaceBundle (Bundle
---             { signature = Just (Signature
---                 { inputs = Just (Map.singleton "whatever" (TypeFix StringType))
---                 , outputs = Nothing
---                 , tydefs = Nothing
---                 })
---             , root = ModelSpaceFix (ModelSpace (Space
---                 { connection = Connection
---                     { nspart = "whatever"
---                     , inputs = Nothing
---                     , named = Nothing
---                     , additional = Nothing
---                     }
---                 , element = DirectModel (ModelDirectAttrs "something")
---                 } ))
---             })
---     actual <- decodeJsonFile' "testdata/example.json"
---     -- actual <- decodeYamlFile' "testdata/example.yaml"
---     actual @?= Right expected
+test_example :: TestTree
+test_example = testCase "example" $ do
+    let expected = ModelSpaceBundle (Bundle
+            { signature = Just (Signature
+                { inputs = Just (Map.singleton "whatever" (TypeFix StringType))
+                , outputs = Nothing
+                , tydefs = Nothing
+                })
+            , root = ModelSpaceFix (ModelSpace (Space
+                { nspart = "whatever"
+                , inputs = Nothing
+                , element = DepModel
+                    { dependencies = Nothing
+                    , model = DirectModel (ModelDirectAttrs "something")
+                    }
+                } ))
+            })
+    actual <- decodeYamlFile "testdata/example.yaml"
+    actual @?= Right expected
 
 data SerdeCase a = SerdeCase { name :: Text, value :: a, source :: Text } deriving (Functor)
 

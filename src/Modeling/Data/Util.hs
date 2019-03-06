@@ -98,8 +98,8 @@ simpleDomainInjection = injectionMapError onlyAttributesError . domainInjection 
 type DomainErrorMsg = DomainInjectionError ErrorMsg ErrorMsg
 
 missingAttrs, unexpectedAttrs :: ErrorMsg
-missingAttrs = ErrorMsg "Missing attrs"
-unexpectedAttrs = ErrorMsg "Unexpected attrs"
+missingAttrs = ErrorMsg "Missing attributes field"
+unexpectedAttrs = ErrorMsg "Unexpected value in attributes field"
 
 simpleWithoutAttrs :: Maybe a -> Either ErrorMsg (Maybe a)
 simpleWithoutAttrs ma = case ma of { Nothing -> Right Nothing; Just _ -> Left unexpectedAttrs }

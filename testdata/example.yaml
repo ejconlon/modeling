@@ -1,12 +1,12 @@
 signature:
   inputs:
     whatever:
-      ty:
-        name: string
+      name: string
 root:
-  connection:
-    nspart: whatever
+  nspart: whatever
   element:
-    name: direct
-    direct:
-      name: something
+    model:
+      name: direct
+      attributes:
+        direct:
+          name: something
