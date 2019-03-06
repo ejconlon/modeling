@@ -2,22 +2,22 @@
 
 module Test.Modeling.SimpleTest where
 
-import Data.Aeson
-import qualified Data.Map as Map
-import Data.Text (Text)
-import qualified Data.Text as T
-import Data.Void (Void)
-import GHC.Generics
-import Modeling.Data.Aeson
-import Modeling.Data.Core
-import Modeling.Data.Model
-import Modeling.Data.Outside
-import Modeling.Data.Serde
-import Modeling.Data.Param
-import Modeling.Data.Type
-import Modeling.Data.Util
-import Test.Tasty
-import Test.Tasty.HUnit
+import           Data.Aeson
+import qualified Data.Map              as Map
+import           Data.Text             (Text)
+import qualified Data.Text             as T
+import           Data.Void             (Void)
+import           GHC.Generics
+import           Modeling.Data.Aeson
+import           Modeling.Data.Core
+import           Modeling.Data.Model
+import           Modeling.Data.Outside
+import           Modeling.Data.Param
+import           Modeling.Data.Serde
+import           Modeling.Data.Type
+import           Modeling.Data.Util
+import           Test.Tasty
+import           Test.Tasty.HUnit
 
 test_something :: TestTree
 test_something = testCase "something" $ do
@@ -64,7 +64,7 @@ runSerdeCase1 :: (Eq (f a), Show (f a), ToJSON1 f, FromJSON1 f, ToJSON a, FromJS
 runSerdeCase1 = runSerdeCase . (AesonWrapperApp <$>)
 
 runSomeSerdeCase :: SomeSerdeCase -> TestTree
-runSomeSerdeCase (SomeSerdeCase serdeCase) = runSerdeCase serdeCase
+runSomeSerdeCase (SomeSerdeCase serdeCase)  = runSerdeCase serdeCase
 runSomeSerdeCase (SomeSerdeCase1 serdeCase) = runSerdeCase1 serdeCase
 
 serdeCases :: [SomeSerdeCase]

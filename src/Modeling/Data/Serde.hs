@@ -23,7 +23,7 @@ encodeJsonText' :: ToJSON a => a -> Text
 encodeJsonText' = decodeUtf8 . toStrict . encode
 
 decodeJsonText' :: (FromJSON a, IsString e) => Text -> Either e a
-decodeJsonText' = (left fromString) . eitherDecodeStrict' . encodeUtf8
+decodeJsonText' = left fromString . eitherDecodeStrict' . encodeUtf8
 
 decodeJsonFile' :: (FromJSON a, IsString e) => FilePath -> IO (Either e a)
 decodeJsonFile' = (left fromString <$>) . eitherDecodeFileStrict'

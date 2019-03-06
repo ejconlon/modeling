@@ -22,18 +22,18 @@ renderErrorMsg = T.unpack . unErrorMsg
 jsonInjection :: (ToJSON a, FromJSON a, IsString e) => Injection e a Value
 jsonInjection = Injection toJSON inv where
     inv v =
-        case (parseEither parseJSON) v of
+        case parseEither parseJSON v of
             Left e -> Left (fromString e)
             Right a -> Right a
 
 injectionToJSON :: ToJSON b => Injection e a b -> a -> Value
-injectionToJSON (Injection { injApply }) = toJSON . injApply
+injectionToJSON Injection { injApply } = toJSON . injApply
 
 injectionToEncoding :: ToJSON b => Injection e a b -> a -> Encoding
-injectionToEncoding (Injection { injApply }) = toEncoding . injApply
+injectionToEncoding Injection { injApply } = toEncoding . injApply
 
 injectionParseJSON :: FromJSON b => (e -> String) -> Injection e a b -> Value -> Parser a
-injectionParseJSON render (Injection { injInvert }) v = do
+injectionParseJSON render Injection { injInvert } v = do
     b <- parseJSON v
     case injInvert b of
         Right a -> pure a
@@ -43,7 +43,7 @@ data Sum a = Sum Text (Maybe a) deriving (Show, Eq, Functor, Foldable, Traversab
 
 instance ToJSON1 Sum where
     liftToJSON tv _ (Sum n ma) =
-        object (("name" .= n):(maybe [] (\a -> ["attributes" .= object [n .= tv a]]) ma))
+        object (("name" .= n):maybe [] (\a -> ["attributes" .= object [n .= tv a]]) ma)
     liftToEncoding tv _ (Sum n ma) =
         let s = "name" .= n
             t = case ma of
@@ -78,14 +78,14 @@ onlyAttributesError (DomainAttributesError ae) = ae
 domainInjection :: Injection ne n Text -> Injection ae a (n, Maybe b) -> Injection (DomainInjectionError ne ae) a (Sum b)
 domainInjection ninj ainj = Injection apl inv where
     apl a =
-        let (n, mv) = (injApply ainj) a
-            t = (injApply ninj) n
+        let (n, mv) = injApply ainj a
+            t = injApply ninj n
         in Sum t mv
     inv (Sum t mv) =
-        case (injInvert ninj) t of
+        case injInvert ninj t of
             Left ne -> Left (DomainNameError ne)
             Right n ->
-                case (injInvert ainj) (n, mv) of
+                case injInvert ainj (n, mv) of
                     Left ae -> Left (DomainAttributesError ae)
                     Right a -> Right a
 
@@ -105,13 +105,13 @@ simpleWithoutAttrs :: Maybe a -> Either ErrorMsg (Maybe a)
 simpleWithoutAttrs ma = case ma of { Nothing -> Right Nothing; Just _ -> Left unexpectedAttrs }
 
 simpleWithAttrs :: (a -> Maybe b) -> Maybe a -> Either ErrorMsg (Maybe a)
-simpleWithAttrs s ma = case (ma >>= s) of { Nothing -> Left missingAttrs; Just _ -> Right ma }
+simpleWithAttrs s ma = case ma >>= s of { Nothing -> Left missingAttrs; Just _ -> Right ma }
 
 withoutAttrs :: b -> Maybe a -> Either ErrorMsg b
 withoutAttrs y ma = case ma of { Nothing -> pure y; Just _ -> Left unexpectedAttrs }
 
 withAttrs :: (a -> Maybe v) -> (v -> b) -> Maybe a -> Either ErrorMsg b
-withAttrs s f ma = case (ma >>= s) of { Nothing -> Left missingAttrs; Just x -> Right (f x) }
+withAttrs s f ma = case ma >>= s of { Nothing -> Left missingAttrs; Just x -> Right (f x) }
 
 sumInjection :: Injection e a Value -> Injection e (Sum a) (Sum Value)
 sumInjection (Injection vapl vinv) = Injection apl inv where

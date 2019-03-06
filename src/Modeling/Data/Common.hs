@@ -1,7 +1,7 @@
 module Modeling.Data.Common where
 
 import Data.Sequence (Seq)
-import Data.Text (Text)
+import Data.Text     (Text)
 
 -- newtype NamespacePart = NamespacePart { unNamespacePart :: Text } deriving (Show, Eq, Ord, IsString)
 -- newtype ParamName = ParamName { unParamName :: Text } deriving (Show, Eq, Ord, IsString)

@@ -4,8 +4,8 @@ module Modeling.Data.Aeson where
 
 import Data.Aeson
 import Data.Aeson.Types (Parser, listEncoding, listParser)
-import GHC.Generics (Generic, Generic1, Rep, Rep1)
-import Data.Vector (fromList)
+import Data.Vector      (fromList)
+import GHC.Generics     (Generic, Generic1, Rep, Rep1)
 
 options :: Options
 options = defaultOptions

@@ -27,3 +27,10 @@ steps:
 columns: 94
 
 newline: native
+
+language_extensions:
+  - DerivingVia
+  - FlexibleContexts
+  - NamedFieldPuns
+  - RecordWildCards
+  - TypeFamilies
