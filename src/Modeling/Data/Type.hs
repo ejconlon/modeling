@@ -27,7 +27,7 @@ data TypeCon =
     | EnumTypeCon
     | UnionTypeCon
     | AnyTypeCon
-    deriving (Generic, Eq, Show)
+    deriving (Generic, Eq, Show, Enum, Bounded)
 
 typeConToText :: Injection ErrorMsg TypeCon Text
 typeConToText = Injection apply invert where

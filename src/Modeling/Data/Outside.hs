@@ -7,12 +7,20 @@ import Modeling.Data.Aeson
 import Modeling.Data.Core
 import Modeling.Data.Model
 
-newtype ModelSpace a = ModelSpace { unModelSpace :: Space (Model a) }
+data ModelDeps a = ModelDeps
+    { dependencies :: Dependencies a
+    , model :: Model a
+    } deriving (Generic, Eq, Show, Functor, Foldable, Traversable)
+
+deriving via (AesonWrapper (ModelDeps a)) instance ToJSON a => ToJSON (ModelDeps a)
+deriving via (AesonWrapper (ModelDeps a)) instance FromJSON a => FromJSON (ModelDeps a)
+
+newtype ModelSpace a = ModelSpace { unModelSpace :: Space (ModelDeps a) }
     deriving (Generic, Eq, Show, Functor, Foldable, Traversable)
 
 instance Newtype (ModelSpace a)
-deriving via (AesonNewtype (ModelSpace a) (Space (Model a))) instance ToJSON a => ToJSON (ModelSpace a)
-deriving via (AesonNewtype (ModelSpace a) (Space (Model a))) instance FromJSON a => FromJSON (ModelSpace a)
+deriving via (AesonNewtype (ModelSpace a) (Space (ModelDeps a))) instance ToJSON a => ToJSON (ModelSpace a)
+deriving via (AesonNewtype (ModelSpace a) (Space (ModelDeps a))) instance FromJSON a => FromJSON (ModelSpace a)
 
 newtype ModelSpaceFix = ModelSpaceFix { unModelSpaceFix :: ModelSpace ModelSpaceFix }
     deriving (Generic, Eq, Show)

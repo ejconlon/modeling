@@ -16,7 +16,7 @@ data ModelCon =
     | ParallelModelCon
     | AdaptorModelCon
     | SplitModelCon
-    deriving (Generic, Show, Eq)
+    deriving (Generic, Show, Eq, Enum, Bounded)
 
 modelConToText :: Injection ErrorMsg ModelCon Text
 modelConToText = Injection apply invert where

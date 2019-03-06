@@ -10,18 +10,17 @@ import Modeling.Data.Common
 import Modeling.Data.Param
 import Modeling.Data.Type
 
-data Connection a = Connection
-    { nspart :: NamespacePart
-    , inputs :: Maybe (Map ParamName Param)
-    , named :: Maybe (Map ElementName a)
+data Dependencies a = Dependencies
+    { named :: Maybe (Map ElementName a)
     , additional :: Maybe (Seq a)
     } deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
 
-deriving via (AesonWrapper (Connection a)) instance ToJSON a => ToJSON (Connection a)
-deriving via (AesonWrapper (Connection a)) instance FromJSON a => FromJSON (Connection a)
+deriving via (AesonWrapper (Dependencies a)) instance ToJSON a => ToJSON (Dependencies a)
+deriving via (AesonWrapper (Dependencies a)) instance FromJSON a => FromJSON (Dependencies a)
 
 data Space a = Space
-    { connection :: Connection a
+    { nspart :: NamespacePart
+    , inputs :: Maybe (Map ParamName Param)
     , element :: a
     } deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
 
@@ -38,7 +37,7 @@ data Signature = Signature
 data Bundle a = Bundle
     { signature :: Maybe Signature
     , root :: a
-    } deriving (Generic, Show, Eq)
+    } deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
 
 deriving via (AesonWrapper (Bundle a)) instance ToJSON a => ToJSON (Bundle a)
 deriving via (AesonWrapper (Bundle a)) instance FromJSON a => FromJSON (Bundle a)

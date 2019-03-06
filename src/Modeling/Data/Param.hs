@@ -12,7 +12,7 @@ data ParamCon =
       LiteralParamCon
     | ExternalParamCon
     | InternalParamCon
-    deriving (Generic, Eq, Show)
+    deriving (Generic, Eq, Show, Enum, Bounded)
 
 paramConToText :: Injection ErrorMsg ParamCon Text
 paramConToText = Injection apply invert where
