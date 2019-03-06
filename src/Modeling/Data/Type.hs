@@ -111,7 +111,7 @@ data TypeSum a = TypeSum
       deriving (ToJSON1, FromJSON1) via (AesonWrapper1 TypeSum)
 
 newtype TypeSumFix = TypeSumFix { unTypeSumFix :: TypeSum TypeSumFix }
-    deriving (Generic, Show, Eq)
+    deriving (Show, Eq)
     deriving (ToJSON, FromJSON) via (AesonWrapperApp TypeSum TypeSumFix)
 
 data Type a =
@@ -184,5 +184,5 @@ instance FromJSON1 Type where
     liftParseJSON tv tvl = liftParser renderErrorMsg typeFromRawSum . liftParseJSON tv tvl
 
 newtype TypeFix = TypeFix { unTypeFix :: Type TypeFix }
-    deriving (Generic, Show, Eq)
+    deriving (Show, Eq)
     deriving (ToJSON, FromJSON) via (AesonWrapperApp Type TypeFix)
