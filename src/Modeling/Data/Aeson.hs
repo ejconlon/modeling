@@ -3,11 +3,19 @@
 module Modeling.Data.Aeson where
 
 import Data.Aeson
+import Data.Aeson.Types (Parser)
+import Data.Aeson.Encoding.Internal (list)
+import Data.Coerce (coerce)
 import GHC.Generics (Generic, Generic1, Rep, Rep1)
+import Data.Vector (fromList)
 
 options :: Options
 options = defaultOptions
     { omitNothingFields = True
+    -- , sumEncoding = TaggedObject
+    --     { tagFieldName      = "name"
+    --     , contentsFieldName = "attributes"
+    --     }
     }
 
 newtype AesonWrapper a = AesonWrapper { unAesonWrapper :: a } deriving (Eq, Show)
@@ -36,3 +44,24 @@ instance (ToJSON1 f, ToJSON a) => ToJSON (AesonWrapperApp f a) where
 
 instance (FromJSON1 f, FromJSON a) => FromJSON (AesonWrapperApp f a) where
     parseJSON = (AesonWrapperApp <$>) . parseJSON1
+
+newtype AesonWrapperComp f g a = AesonWrapperComp { unAesonWrapperComp :: f (g a) } deriving (Eq, Show)
+
+instance (ToJSON1 f, ToJSON1 g) => ToJSON1 (AesonWrapperComp f g) where
+    liftToJSON tv tvl =
+        let gv = liftToJSON tv tvl
+            gvl = Array . fromList . fmap gv
+        in liftToJSON gv gvl . unAesonWrapperComp
+    liftToEncoding tv tvl =
+        let gv = liftToEncoding tv tvl
+            gvl = list gv
+        in liftToEncoding gv gvl . unAesonWrapperComp
+
+instance (FromJSON1 f, FromJSON1 g) => FromJSON1 (AesonWrapperComp f g) where
+    liftParseJSON tv tvl =
+        let gv = liftParseJSON tv tvl
+            gvl = error "TODO implement AesonWrapperComp liftParseJSON fully"
+        in (AesonWrapperComp <$>) . liftParseJSON gv gvl
+
+liftParser :: (e -> String) -> (a -> Either e b) -> Parser a -> Parser b
+liftParser r f p = p >>= \a -> either (fail . r) pure (f a)

@@ -110,23 +110,9 @@ data TypeSum a = TypeSum
     } deriving (Generic1, Show, Eq, Functor, Foldable, Traversable)
       deriving (ToJSON1, FromJSON1) via (AesonWrapper1 TypeSum)
 
--- typeSumPairBijection :: Bijection (TypeSum a) (TypeCon, Maybe (TypeAttrs a))
--- typeSumPairBijection = Bijection apl inv where
---     apl (TypeSum tn ma) = (tn, ma)
---     inv (n, ma) = TypeSum n ma
-
--- typeSumSumInjection :: Injection ErrorMsg (TypeSum a) (Sum (TypeAttrs a))
--- typeSumSumInjection = domainInjection' typeConToText typeSumPairBijection
-
 newtype TypeSumFix = TypeSumFix { unTypeSumFix :: TypeSum TypeSumFix }
     deriving (Generic, Show, Eq)
     deriving (ToJSON, FromJSON) via (AesonWrapperApp TypeSum TypeSumFix)
-
--- deriving via (AesonWrapper (TypeSum TypeSumFix)) instance ToJSON TypeSumFix
--- deriving via (AesonWrapper (TypeSum TypeSumFix)) instance FromJSON TypeSumFix
-
--- typeSumFixBijection :: Bijection (TypeSum TypeSumFix) TypeSumFix
--- typeSumFixBijection = Bijection TypeSumFix unTypeSumFix
 
 data Type a =
     StringType
@@ -143,62 +129,60 @@ data Type a =
   | AnyType
   deriving (Generic1, Show, Eq, Functor, Foldable, Traversable)
 
+newtype TypeRawSum a = TypeRawSum { unTypeRawSum :: RawSum (TypeAttrs a) }
+    deriving (ToJSON1, FromJSON1) via (AesonWrapperComp RawSum TypeAttrs)
+
+typeToPair :: Type a -> (TypeCon, Maybe (TypeAttrs a))
+typeToPair t =
+    case t of
+        StringType -> (StringTypeCon, Nothing)
+        LongType -> (LongTypeCon, Nothing)
+        DoubleType -> (DoubleTypeCon, Nothing)
+        BooleanType -> (BooleanTypeCon, Nothing)
+        OptionalType attrs -> (OptionalTypeCon, Just (emptyTypeAttrs { optional = Just attrs }))
+        ListType attrs -> (ListTypeCon, Just (emptyTypeAttrs { list = Just attrs }))
+        StringMapType attrs -> (StringMapTypeCon, Just (emptyTypeAttrs { stringmap = Just attrs }))
+        StructType attrs -> (StructTypeCon, Just (emptyTypeAttrs { struct = Just attrs }))
+        ReferenceType attrs -> (ReferenceTypeCon, Just (emptyTypeAttrs { reference = Just attrs }))
+        EnumType attrs -> (EnumTypeCon, Just (emptyTypeAttrs { enum = Just attrs }))
+        UnionType attrs -> (UnionTypeCon, Just (emptyTypeAttrs { union = Just attrs }))
+        AnyType -> (AnyTypeCon, Nothing)
+
+pairToRawSum :: TypeCon -> Maybe (TypeAttrs a) -> RawSum (TypeAttrs a)
+pairToRawSum c ma = RawSum ((injApply typeConToText) c) ma
+
+typeToRawSum :: Type a -> TypeRawSum a
+typeToRawSum = TypeRawSum . uncurry pairToRawSum . typeToPair
+
+typeFromPair :: (TypeCon, Maybe (TypeAttrs a)) -> Either ErrorMsg (Type a)
+typeFromPair (n, ma) = f ma where
+    f = case n of
+        StringTypeCon -> withoutAttrs StringType
+        LongTypeCon -> withoutAttrs LongType
+        DoubleTypeCon -> withoutAttrs DoubleType
+        BooleanTypeCon -> withoutAttrs BooleanType
+        OptionalTypeCon -> withAttrs optional OptionalType
+        ListTypeCon -> withAttrs list ListType
+        StringMapTypeCon -> withAttrs stringmap StringMapType
+        StructTypeCon -> withAttrs struct StructType
+        ReferenceTypeCon -> withAttrs reference ReferenceType
+        EnumTypeCon -> withAttrs enum EnumType
+        UnionTypeCon -> withAttrs union UnionType
+        AnyTypeCon -> withoutAttrs AnyType
+
+pairFromRawSum :: RawSum (TypeAttrs a) -> Either ErrorMsg (TypeCon, Maybe (TypeAttrs a))
+pairFromRawSum (RawSum t ma) = (\n -> (n, ma)) <$> (injInvert typeConToText) t
+
+typeFromRawSum :: TypeRawSum a -> Either ErrorMsg (Type a)
+typeFromRawSum rs = pairFromRawSum (unTypeRawSum rs) >>= typeFromPair
+
 instance ToJSON1 Type where
-    liftToJSON = undefined
-    liftToEncoding = undefined
+    liftToJSON tv tvl = liftToJSON tv tvl . typeToRawSum
+    liftToEncoding tv tvl = liftToEncoding tv tvl . typeToRawSum
 
 instance FromJSON1 Type where
-    liftParseJSON = undefined
-
--- typePairInjection :: Injection ErrorMsg (Type a) (TypeCon, Maybe (TypeAttrs a))
--- typePairInjection = Injection apl inv where
---     apl t =
---         case t of
---             StringType -> (StringTypeCon, Nothing)
---             LongType -> (LongTypeCon, Nothing)
---             DoubleType -> (DoubleTypeCon, Nothing)
---             BooleanType -> (BooleanTypeCon, Nothing)
---             OptionalType attrs -> (OptionalTypeCon, Just (emptyTypeAttrs { optional = Just attrs }))
---             ListType attrs -> (ListTypeCon, Just (emptyTypeAttrs { list = Just attrs }))
---             StringMapType attrs -> (StringMapTypeCon, Just (emptyTypeAttrs { stringmap = Just attrs }))
---             StructType attrs -> (StructTypeCon, Just (emptyTypeAttrs { struct = Just attrs }))
---             ReferenceType attrs -> (ReferenceTypeCon, Just (emptyTypeAttrs { reference = Just attrs }))
---             EnumType attrs -> (EnumTypeCon, Just (emptyTypeAttrs { enum = Just attrs }))
---             UnionType attrs -> (UnionTypeCon, Just (emptyTypeAttrs { union = Just attrs }))
---             AnyType -> (AnyTypeCon, Nothing)
---     inv (n, ma) = f ma where
---         f = case n of
---             StringTypeCon -> withoutAttrs StringType
---             LongTypeCon -> withoutAttrs LongType
---             DoubleTypeCon -> withoutAttrs DoubleType
---             BooleanTypeCon -> withoutAttrs BooleanType
---             OptionalTypeCon -> withAttrs optional OptionalType
---             ListTypeCon -> withAttrs list ListType
---             StringMapTypeCon -> withAttrs stringmap StringMapType
---             StructTypeCon -> withAttrs struct StructType
---             ReferenceTypeCon -> withAttrs reference ReferenceType
---             EnumTypeCon -> withAttrs enum EnumType
---             UnionTypeCon -> withAttrs union UnionType
---             AnyTypeCon -> withoutAttrs AnyType
-
--- typeSumInjection :: Injection ErrorMsg a b -> Injection ErrorMsg (Type a) (TypeSum b)
--- typeSumInjection rinj = composeInjection (postTraverseInjection rinj (lowerBijection (flipBijection typeSumPairBijection))) typePairInjection
+    liftParseJSON tv tvl = liftParser renderErrorMsg typeFromRawSum . liftParseJSON tv tvl
 
 newtype TypeFix = TypeFix { unTypeFix :: Type TypeFix }
     deriving (Generic, Show, Eq)
     deriving (ToJSON, FromJSON) via (AesonWrapperApp Type TypeFix)
-
--- typeFixBijection :: Bijection (Type TypeFix) TypeFix
--- typeFixBijection = Bijection TypeFix unTypeFix
-
--- typeFixInjection :: Injection ErrorMsg TypeFix TypeSumFix
--- typeFixInjection =
---     let knot = typeSumInjection typeFixInjection
---     in composeRight (composeLeft typeSumFixBijection knot) (flipBijection typeFixBijection)
-
--- instance ToJSON TypeFix where
---     toJSON = injectionToJSON typeFixInjection
---     toEncoding = injectionToEncoding typeFixInjection
-
--- instance FromJSON TypeFix where
---     parseJSON = injectionParseJSON renderErrorMsg typeFixInjection

@@ -4,6 +4,7 @@ import Data.Aeson
 import Data.Map (Map)
 import Data.Sequence (Seq)
 import Data.Text (Text)
+import Data.Vector (fromList)
 import GHC.Generics (Generic, Generic1)
 import Modeling.Data.Aeson
 import Modeling.Data.Bidi
@@ -77,55 +78,44 @@ data ModelSum a = ModelSum
     } deriving (Generic1, Show, Eq, Functor, Foldable, Traversable)
       deriving (ToJSON1, FromJSON1) via (AesonWrapper1 ModelSum)
 
--- modelSumPairBijection :: Bijection (ModelSum a) (ModelCon, Maybe (ModelAttrs a))
--- modelSumPairBijection = Bijection apl inv where
---     apl (ModelSum tn ma) = (tn, ma)
---     inv (n, ma) = ModelSum n ma
-
--- modelSumSumInjection :: Injection ErrorMsg (ModelSum a) (Sum (ModelAttrs a))
--- modelSumSumInjection = domainInjection' modelConToText modelSumPairBijection
-
 data Model a =
       DirectModel ModelDirectAttrs
     | SerialModel (ModelSerialAttrs a)
     | SplitModel (ModelSplitAttrs a)
     deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
 
--- modelPairInjection :: Injection ErrorMsg (Model a) (ModelCon, Maybe (ModelAttrs a))
--- modelPairInjection = Injection apl inv where
---     apl t =
---         case t of
---             DirectModel attrs -> (DirectModelCon, Just (emptyModelAttrs { direct = Just attrs }))
---             SerialModel attrs -> (SplitModelCon, Just (emptyModelAttrs { serial = Just attrs }))
---             SplitModel attrs -> (SplitModelCon, Just (emptyModelAttrs { split = Just attrs }))
---     inv (n, ma) = f ma where
---         f = case n of
---             DirectModelCon -> withAttrs direct DirectModel
---             SerialModelCon -> withAttrs serial SerialModel
---             SplitModelCon -> withAttrs split SplitModel
+newtype ModelRawSum a = ModelRawSum { unModelRawSum :: RawSum (ModelAttrs a) }
+        deriving (ToJSON1, FromJSON1) via (AesonWrapperComp RawSum ModelAttrs)
 
--- modelSumInjection :: Injection ErrorMsg a b -> Injection ErrorMsg (Model a) (ModelSum b)
--- modelSumInjection rinj = composeInjection (postTraverseInjection rinj (lowerBijection (flipBijection modelSumPairBijection))) modelPairInjection
+modelToPair :: Model a -> (ModelCon, Maybe (ModelAttrs a))
+modelToPair t =
+    case t of
+        DirectModel attrs -> (DirectModelCon, Just (emptyModelAttrs { direct = Just attrs }))
+        SerialModel attrs -> (SplitModelCon, Just (emptyModelAttrs { serial = Just attrs }))
+        SplitModel attrs -> (SplitModelCon, Just (emptyModelAttrs { split = Just attrs }))
 
---  liftToJSON :: (a -> Value) -> ([a] -> Value) -> f a -> Value
+pairToRawSum :: ModelCon -> Maybe (ModelAttrs a) -> RawSum (ModelAttrs a)
+pairToRawSum c ma = RawSum ((injApply modelConToText) c) ma
 
--- modelToPair :: Model a -> (ModelCon, Maybe (ModelAttrs a))
--- modelToPair t =
---     case t of
---         DirectModel attrs -> (DirectModelCon, Just (emptyModelAttrs { direct = Just attrs }))
---         SerialModel attrs -> (SplitModelCon, Just (emptyModelAttrs { serial = Just attrs }))
---         SplitModel attrs -> (SplitModelCon, Just (emptyModelAttrs { split = Just attrs }))
+modelToRawSum :: Model a -> ModelRawSum a
+modelToRawSum = ModelRawSum . uncurry pairToRawSum . modelToPair
 
--- pairToRawSum :: ModelCon -> Maybe (ModelAttrs a) -> RawSum (ModelAttrs a)
--- pairToRawSum c ma = RawSum ((injApply modelConToText) c) ma
+modelFromPair :: (ModelCon, Maybe (ModelAttrs a)) -> Either ErrorMsg (Model a)
+modelFromPair (n, ma) = f ma where
+    f = case n of
+        DirectModelCon -> withAttrs direct DirectModel
+        SerialModelCon -> withAttrs serial SerialModel
+        SplitModelCon -> withAttrs split SplitModel
 
--- modelToRawSum :: Model a -> RawSum (ModelAttrs a)
--- modelToRawSum = uncurry pairToRawSum . modelToPair
+pairFromRawSum :: RawSum (ModelAttrs a) -> Either ErrorMsg (ModelCon, Maybe (ModelAttrs a))
+pairFromRawSum (RawSum t ma) = (\n -> (n, ma)) <$> (injInvert modelConToText) t
 
--- TODO don't use injection composition for this so we can separate classes
+modelFromRawSum :: ModelRawSum a -> Either ErrorMsg (Model a)
+modelFromRawSum rs = pairFromRawSum (unModelRawSum rs) >>= modelFromPair
+
 instance ToJSON1 Model where
-    liftToJSON = undefined
-    liftToEncoding = undefined
+    liftToJSON tv tvl = liftToJSON tv tvl . modelToRawSum
+    liftToEncoding tv tvl = liftToEncoding tv tvl . modelToRawSum
 
 instance FromJSON1 Model where
-    liftParseJSON = undefined
+    liftParseJSON tv tvl = liftParser renderErrorMsg modelFromRawSum . liftParseJSON tv tvl

@@ -8,7 +8,7 @@ import Modeling.Data.Model
 
 newtype ModelSpace a = ModelSpace { unModelSpace :: Space (Model a) }
     deriving (Generic1, Eq, Show, Functor, Foldable, Traversable)
-    deriving (ToJSON1, FromJSON1) via (AesonWrapper1 ModelSpace)
+    deriving (ToJSON1, FromJSON1) via (AesonWrapperComp Space Model)
 
 newtype ModelSpaceFix = ModelSpaceFix { unModelSpaceFix :: ModelSpace ModelSpaceFix }
     deriving (Generic, Eq, Show)
