@@ -84,38 +84,23 @@ data Model a =
     | SplitModel (ModelSplitAttrs a)
     deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
 
-newtype ModelRawSum a = ModelRawSum { unModelRawSum :: RawSum (ModelAttrs a) }
-        deriving (ToJSON1, FromJSON1) via (AesonWrapperComp RawSum ModelAttrs)
-
-modelToPair :: Model a -> (ModelCon, Maybe (ModelAttrs a))
+modelToPair :: Model a -> ModelSum a
 modelToPair t =
     case t of
-        DirectModel attrs -> (DirectModelCon, Just (emptyModelAttrs { direct = Just attrs }))
-        SerialModel attrs -> (SplitModelCon, Just (emptyModelAttrs { serial = Just attrs }))
-        SplitModel attrs -> (SplitModelCon, Just (emptyModelAttrs { split = Just attrs }))
+        DirectModel attrs -> ModelSum DirectModelCon (Just (emptyModelAttrs { direct = Just attrs }))
+        SerialModel attrs -> ModelSum SplitModelCon (Just (emptyModelAttrs { serial = Just attrs }))
+        SplitModel attrs -> ModelSum SplitModelCon (Just (emptyModelAttrs { split = Just attrs }))
 
-pairToRawSum :: ModelCon -> Maybe (ModelAttrs a) -> RawSum (ModelAttrs a)
-pairToRawSum c ma = RawSum ((injApply modelConToText) c) ma
-
-modelToRawSum :: Model a -> ModelRawSum a
-modelToRawSum = ModelRawSum . uncurry pairToRawSum . modelToPair
-
-modelFromPair :: (ModelCon, Maybe (ModelAttrs a)) -> Either ErrorMsg (Model a)
-modelFromPair (n, ma) = f ma where
+modelFromPair :: ModelSum a -> Either ErrorMsg (Model a)
+modelFromPair (ModelSum n ma) = f ma where
     f = case n of
         DirectModelCon -> withAttrs direct DirectModel
         SerialModelCon -> withAttrs serial SerialModel
         SplitModelCon -> withAttrs split SplitModel
 
-pairFromRawSum :: RawSum (ModelAttrs a) -> Either ErrorMsg (ModelCon, Maybe (ModelAttrs a))
-pairFromRawSum (RawSum t ma) = (\n -> (n, ma)) <$> (injInvert modelConToText) t
-
-modelFromRawSum :: ModelRawSum a -> Either ErrorMsg (Model a)
-modelFromRawSum rs = pairFromRawSum (unModelRawSum rs) >>= modelFromPair
-
 instance ToJSON1 Model where
-    liftToJSON tv tvl = liftToJSON tv tvl . modelToRawSum
-    liftToEncoding tv tvl = liftToEncoding tv tvl . modelToRawSum
+    liftToJSON tv tvl = liftToJSON tv tvl . modelToPair
+    liftToEncoding tv tvl = liftToEncoding tv tvl . modelToPair
 
 instance FromJSON1 Model where
-    liftParseJSON tv tvl = liftParser renderErrorMsg modelFromRawSum . liftParseJSON tv tvl
+    liftParseJSON tv tvl = liftParser renderErrorMsg modelFromPair . liftParseJSON tv tvl

@@ -129,33 +129,24 @@ data Type a =
   | AnyType
   deriving (Generic1, Show, Eq, Functor, Foldable, Traversable)
 
-newtype TypeRawSum a = TypeRawSum { unTypeRawSum :: RawSum (TypeAttrs a) }
-    deriving (ToJSON1, FromJSON1) via (AesonWrapperComp RawSum TypeAttrs)
-
-typeToPair :: Type a -> (TypeCon, Maybe (TypeAttrs a))
+typeToPair :: Type a -> TypeSum a
 typeToPair t =
     case t of
-        StringType -> (StringTypeCon, Nothing)
-        LongType -> (LongTypeCon, Nothing)
-        DoubleType -> (DoubleTypeCon, Nothing)
-        BooleanType -> (BooleanTypeCon, Nothing)
-        OptionalType attrs -> (OptionalTypeCon, Just (emptyTypeAttrs { optional = Just attrs }))
-        ListType attrs -> (ListTypeCon, Just (emptyTypeAttrs { list = Just attrs }))
-        StringMapType attrs -> (StringMapTypeCon, Just (emptyTypeAttrs { stringmap = Just attrs }))
-        StructType attrs -> (StructTypeCon, Just (emptyTypeAttrs { struct = Just attrs }))
-        ReferenceType attrs -> (ReferenceTypeCon, Just (emptyTypeAttrs { reference = Just attrs }))
-        EnumType attrs -> (EnumTypeCon, Just (emptyTypeAttrs { enum = Just attrs }))
-        UnionType attrs -> (UnionTypeCon, Just (emptyTypeAttrs { union = Just attrs }))
-        AnyType -> (AnyTypeCon, Nothing)
+        StringType -> TypeSum StringTypeCon Nothing
+        LongType -> TypeSum LongTypeCon Nothing
+        DoubleType -> TypeSum DoubleTypeCon Nothing
+        BooleanType -> TypeSum BooleanTypeCon Nothing
+        OptionalType attrs -> TypeSum OptionalTypeCon (Just (emptyTypeAttrs { optional = Just attrs }))
+        ListType attrs -> TypeSum ListTypeCon (Just (emptyTypeAttrs { list = Just attrs }))
+        StringMapType attrs -> TypeSum StringMapTypeCon (Just (emptyTypeAttrs { stringmap = Just attrs }))
+        StructType attrs -> TypeSum StructTypeCon (Just (emptyTypeAttrs { struct = Just attrs }))
+        ReferenceType attrs -> TypeSum ReferenceTypeCon (Just (emptyTypeAttrs { reference = Just attrs }))
+        EnumType attrs -> TypeSum EnumTypeCon (Just (emptyTypeAttrs { enum = Just attrs }))
+        UnionType attrs -> TypeSum UnionTypeCon (Just (emptyTypeAttrs { union = Just attrs }))
+        AnyType -> TypeSum AnyTypeCon Nothing
 
-pairToRawSum :: TypeCon -> Maybe (TypeAttrs a) -> RawSum (TypeAttrs a)
-pairToRawSum c ma = RawSum ((injApply typeConToText) c) ma
-
-typeToRawSum :: Type a -> TypeRawSum a
-typeToRawSum = TypeRawSum . uncurry pairToRawSum . typeToPair
-
-typeFromPair :: (TypeCon, Maybe (TypeAttrs a)) -> Either ErrorMsg (Type a)
-typeFromPair (n, ma) = f ma where
+typeFromPair :: TypeSum a -> Either ErrorMsg (Type a)
+typeFromPair (TypeSum n ma) = f ma where
     f = case n of
         StringTypeCon -> withoutAttrs StringType
         LongTypeCon -> withoutAttrs LongType
@@ -170,18 +161,12 @@ typeFromPair (n, ma) = f ma where
         UnionTypeCon -> withAttrs union UnionType
         AnyTypeCon -> withoutAttrs AnyType
 
-pairFromRawSum :: RawSum (TypeAttrs a) -> Either ErrorMsg (TypeCon, Maybe (TypeAttrs a))
-pairFromRawSum (RawSum t ma) = (\n -> (n, ma)) <$> (injInvert typeConToText) t
-
-typeFromRawSum :: TypeRawSum a -> Either ErrorMsg (Type a)
-typeFromRawSum rs = pairFromRawSum (unTypeRawSum rs) >>= typeFromPair
-
 instance ToJSON1 Type where
-    liftToJSON tv tvl = liftToJSON tv tvl . typeToRawSum
-    liftToEncoding tv tvl = liftToEncoding tv tvl . typeToRawSum
+    liftToJSON tv tvl = liftToJSON tv tvl . typeToPair
+    liftToEncoding tv tvl = liftToEncoding tv tvl . typeToPair
 
 instance FromJSON1 Type where
-    liftParseJSON tv tvl = liftParser renderErrorMsg typeFromRawSum . liftParseJSON tv tvl
+    liftParseJSON tv tvl = liftParser renderErrorMsg typeFromPair . liftParseJSON tv tvl
 
 newtype TypeFix = TypeFix { unTypeFix :: Type TypeFix }
     deriving (Show, Eq)

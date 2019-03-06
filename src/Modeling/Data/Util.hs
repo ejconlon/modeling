@@ -39,29 +39,6 @@ injectionParseJSON render (Injection { injInvert }) v = do
         Right a -> pure a
         Left e -> fail (render e)
 
-data RawSum a = RawSum Text (Maybe a)
-    deriving (Show, Eq, Functor, Foldable, Traversable)
-
-instance ToJSON1 RawSum where
-    liftToJSON tv _ (RawSum n ma) =
-        object (("name" .= n):(maybe [] (\a -> ["attributes" .= tv a]) ma))
-    liftToEncoding tv _ (RawSum n ma) =
-        let s = "name" .= n
-            t = case ma of
-                    Nothing -> mempty
-                    Just a -> pair "attributes" (tv a)
-        in pairs (s <> t)
-
-instance FromJSON1 RawSum where
-    liftParseJSON pv _ = withObject "RawSum" $ \v -> do
-        n <- v .: "name"
-        ma <- v .:? "attributes"
-        case ma of
-            Nothing -> pure (RawSum n Nothing)
-            Just a -> do
-                b <- pv a
-                pure (RawSum n (Just b))
-
 data Sum a = Sum Text (Maybe a) deriving (Show, Eq, Functor, Foldable, Traversable)
 
 instance ToJSON1 Sum where
