@@ -4,7 +4,6 @@ module Modeling.Data.Aeson where
 
 import Data.Aeson
 import Data.Aeson.Types (Parser, listEncoding, listParser)
-import Data.Coerce (coerce)
 import GHC.Generics (Generic, Generic1, Rep, Rep1)
 import Data.Vector (fromList)
 
