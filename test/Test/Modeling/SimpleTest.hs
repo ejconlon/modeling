@@ -54,9 +54,9 @@ data SomeSerdeCase where
 
 runSerdeCase :: (Eq a, Show a, ToJSON a, FromJSON a) => SerdeCase a -> TestTree
 runSerdeCase (SerdeCase name value source) = testCase (T.unpack name) $ do
-    let actualSource = encodeJsonText' value
+    let actualSource = encodeJsonText value
     actualSource @?= source
-    let actualValue = decodeJsonText' actualSource
+    let actualValue = decodeJsonText actualSource
     actualValue @?= Right value
 
 runSomeSerdeCase :: SomeSerdeCase -> TestTree
