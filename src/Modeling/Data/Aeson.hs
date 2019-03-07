@@ -4,8 +4,8 @@ module Modeling.Data.Aeson where
 
 import Control.Newtype.Generics (Newtype, O, pack, unpack)
 import Data.Aeson
-import Data.Aeson.Types (Parser)
-import GHC.Generics     (Generic, Rep)
+import Data.Aeson.Types         (Parser)
+import GHC.Generics             (Generic, Rep)
 
 options :: Options
 options = defaultOptions

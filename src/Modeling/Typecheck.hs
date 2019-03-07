@@ -1,26 +1,26 @@
 module Modeling.Typecheck where
 
-import Control.Lens (view)
-import Control.Monad.Except (MonadError, throwError)
-import Control.Monad.Reader (MonadReader)
-import Control.Monad.State (MonadState)
-import Data.Foldable (traverse_)
+import Control.Lens          (view)
+import Control.Monad.Except  (MonadError, throwError)
+import Control.Monad.Reader  (MonadReader)
+import Control.Monad.State   (MonadState)
+import Data.Foldable         (traverse_)
 import Data.Generics.Product (field)
-import Data.Map (Map)
-import Data.Sequence (Seq, (|>))
-import GHC.Generics (Generic)
-import Modeling.Func
+import Data.Map              (Map)
+import Data.Sequence         (Seq, (|>))
+import GHC.Generics          (Generic)
 import Modeling.Data.Common
 import Modeling.Data.Core
 import Modeling.Data.Model
-import Modeling.Data.Param
 import Modeling.Data.Outside
-import Modeling.Util (localMod)
+import Modeling.Data.Param
+import Modeling.Func
+import Modeling.Util         (localMod)
 
 data RealTypeError = Boom deriving (Generic, Show, Eq)
 
 data TypeError = TypeError
-    { ns :: Namespace
+    { ns    :: Namespace
     , error :: RealTypeError
     } deriving (Generic, Show, Eq)
 
