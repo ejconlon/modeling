@@ -10,9 +10,11 @@ import Modeling.Data.Outside
 
 data TypeError = Boom deriving (Generic, Show, Eq)
 
-type TypeC m = (MonadReader Void m, MonadState () m, MonadError TypeError m)
-newtype TypeT m a = EvalT { unEvalT :: FuncT Void () TypeError m a }
-    deriving (Functor, Applicative, Monad, MonadReader Void, MonadState (), MonadError TypeError)
+data TypeEnv = TypeEnv deriving (Generic, Show, Eq)
+
+type TypeC m = (MonadReader TypeEnv m, MonadError TypeError m)
+newtype TypeT m a = EvalT { unEvalT :: FuncT TypeEnv () TypeError m a }
+    deriving (Functor, Applicative, Monad, MonadReader TypeEnv, MonadError TypeError)
 
 proof :: Monad m => (forall n. TypeC n => n a) -> TypeT m a
 proof = id

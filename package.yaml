@@ -17,13 +17,15 @@ dependencies:
 - bytestring
 - containers
 - data-fix
+- generic-lens
 - lens
 - mtl
 - newtype-generics
+# - pretty-simple
 - text
 - transformers
 - unordered-containers
-- vector
+# - vector
 - yaml
 
 default-extensions:
