@@ -4,12 +4,14 @@ module Modeling.Data.Aeson where
 
 import Control.Newtype.Generics (Newtype, O, pack, unpack)
 import Data.Aeson
+import Data.Aeson.Casing        (snakeCase)
 import Data.Aeson.Types         (Parser)
 import GHC.Generics             (Generic, Rep)
 
 options :: Options
 options = defaultOptions
     { omitNothingFields = True
+    , fieldLabelModifier = snakeCase
     }
 
 newtype AesonWrapper a = AesonWrapper { unAesonWrapper :: a }
