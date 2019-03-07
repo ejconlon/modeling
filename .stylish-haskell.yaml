@@ -30,6 +30,7 @@ newline: native
 
 language_extensions:
   - ConstraintKinds
+  - DataKinds
   - DeriveFunctor
   - DeriveFoldable
   - DeriveGeneric
@@ -46,4 +47,5 @@ language_extensions:
   - Rank2Types
   - RecordWildCards
   - StandaloneDeriving
+  - TypeApplications
   - TypeFamilies

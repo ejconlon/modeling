@@ -29,6 +29,7 @@ dependencies:
 
 default-extensions:
   - ConstraintKinds
+  - DataKinds
   - DeriveFunctor
   - DeriveFoldable
   - DeriveGeneric
@@ -45,6 +46,7 @@ default-extensions:
   - Rank2Types
   - RecordWildCards
   - StandaloneDeriving
+  - TypeApplications
   - TypeFamilies
 
 library:
