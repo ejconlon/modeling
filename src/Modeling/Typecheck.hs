@@ -35,7 +35,15 @@ newtype TypeT m a = EvalT { unEvalT :: FuncT TypeEnv () TypeError m a }
 typeProof :: Monad m => (forall n. TypeC n => n a) -> TypeT m a
 typeProof = id
 
-data ModelType = ModelType deriving (Generic, Show, Eq)
+data DepTypes = DepTypes
+    { named :: Maybe (Map ElementName ModelType)
+    , additional :: Maybe ModelType
+    } deriving (Generic, Show, Eq)
+
+data ModelType = ModelType
+    { signature :: Maybe Signature
+    , depTypes :: Maybe DepTypes
+    } deriving (Generic, Show, Eq)
 
 makeTypeError :: TypeC m => RealTypeError -> m TypeError
 makeTypeError e = TypeError <$> view (field @"ns") <*> pure e
@@ -44,24 +52,33 @@ throwTypeError :: TypeC m => RealTypeError -> m a
 throwTypeError e = makeTypeError e >>= throwError
 
 inferModelType :: TypeC m => Model (ModelSpaceFix) -> m ModelType
-inferModelType = undefined
+inferModelType m =
+    case m of
+        DirectModel (ModelDirectAttrs {}) -> undefined
+        SerialModel (ModelSerialAttrs {}) -> undefined
+        SplitModel (ModelSplitAttrs {}) -> undefined
 
 withNsPart :: TypeC m => NamespacePart -> m a -> m a
 withNsPart p = localMod (field @"ns") (flip (|>) p)
 
-checkInputs :: ModelType -> Map ParamName Param -> m ()
+checkInputs :: TypeC m => ModelType -> Map ParamName Param -> m ()
 checkInputs = undefined
 
-checkDependencies :: ModelType -> Dependencies ModelSpaceFix -> m ()
+checkDependencies :: TypeC m => ModelType -> Dependencies ModelSpaceFix -> m ()
 checkDependencies = undefined
 
-checkModel :: TypeC m => ModelSpaceFix -> m ()
-checkModel (ModelSpaceFix (ModelSpace Space {..})) = do
-    let DepModel {..} = element
+checkModelWith :: TypeC m => ModelType -> ModelSpaceFix -> m ()
+checkModelWith modelType (ModelSpaceFix (ModelSpace Space { .. })) = do
+    let DepModel { .. } = element
     withNsPart nspart $ do
-        modelType <- inferModelType model
         traverse_ (checkInputs modelType) inputs
         traverse_ (checkDependencies modelType) dependencies
+
+checkModel :: TypeC m => ModelSpaceFix -> m ()
+checkModel msf@(ModelSpaceFix (ModelSpace Space { element })) = do
+    let DepModel { model } = element
+    modelType <- inferModelType model
+    checkModelWith modelType msf
 
 checkBundle :: ModelSpaceBundle -> Either TypeError ()
 checkBundle = undefined
