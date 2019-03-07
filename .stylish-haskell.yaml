@@ -29,8 +29,21 @@ columns: 94
 newline: native
 
 language_extensions:
+  - ConstraintKinds
+  - DeriveFunctor
+  - DeriveFoldable
+  - DeriveGeneric
+  - DeriveTraversable
+  - DerivingStrategies
   - DerivingVia
+  - DuplicateRecordFields
   - FlexibleContexts
+  - FlexibleInstances
+  - GeneralizedNewtypeDeriving
+  - KindSignatures
   - NamedFieldPuns
+  - OverloadedStrings
+  - Rank2Types
   - RecordWildCards
+  - StandaloneDeriving
   - TypeFamilies

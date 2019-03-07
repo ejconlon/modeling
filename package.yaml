@@ -27,6 +27,7 @@ dependencies:
 - yaml
 
 default-extensions:
+  - ConstraintKinds
   - DeriveFunctor
   - DeriveFoldable
   - DeriveGeneric
