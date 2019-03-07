@@ -1,6 +1,6 @@
 .PHONY: build
 build:
-	stack build
+	stack build --test
 
 .PHONY: test
 test:

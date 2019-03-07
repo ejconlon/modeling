@@ -1,15 +1,14 @@
 name:                modeling
 version:             0.1.0
-github:              "githubuser/modeling"
-license:             BSD3
-author:              "Author name here"
-maintainer:          "example@example.com"
-copyright:           "(c) 2019 Author name here"
+github:              "ejconlon/modeling"
+author:              "Eric Conlon"
+maintainer:          "ejconlon@gmail.com"
+copyright:           "(c) 2019 Eric Conlon"
 
 extra-source-files:
 - README.md
 
-description: Please see the README on GitHub at <https://github.com/githubuser/modeling#readme>
+description: Please see the README on GitHub at <https://github.com/ejconlon/modeling#readme>
 
 dependencies:
 - base >= 4.11 && < 5
