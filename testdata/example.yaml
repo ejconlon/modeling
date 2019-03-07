@@ -5,8 +5,7 @@ signature:
 root:
   nspart: whatever
   element:
-    model:
-      name: direct
-      attributes:
-        direct:
-          name: something
+    name: direct
+    attributes:
+      direct:
+        name: something

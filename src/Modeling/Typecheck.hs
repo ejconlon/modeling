@@ -64,20 +64,18 @@ withNsPart p = localMod (field @"ns") (flip (|>) p)
 checkInputs :: TypeC m => ModelType -> Map ParamName Param -> m ()
 checkInputs = undefined
 
-checkDependencies :: TypeC m => ModelType -> Dependencies ModelSpaceFix -> m ()
+checkDependencies :: TypeC m => ModelType -> Model ModelSpaceFix -> m ()
 checkDependencies = undefined
 
 checkModelWith :: TypeC m => ModelType -> ModelSpaceFix -> m ()
 checkModelWith modelType (ModelSpaceFix (ModelSpace Space { .. })) = do
-    let DepModel { .. } = element
     withNsPart nspart $ do
         traverse_ (checkInputs modelType) inputs
-        traverse_ (checkDependencies modelType) dependencies
+        checkDependencies modelType element
 
 checkModel :: TypeC m => ModelSpaceFix -> m ()
 checkModel msf@(ModelSpaceFix (ModelSpace Space { element })) = do
-    let DepModel { model } = element
-    modelType <- inferModelType model
+    modelType <- inferModelType element
     checkModelWith modelType msf
 
 checkBundle :: ModelSpaceBundle -> Either TypeError ()

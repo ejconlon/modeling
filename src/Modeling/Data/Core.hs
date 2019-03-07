@@ -10,14 +10,6 @@ import Modeling.Data.Common
 import Modeling.Data.Param
 import Modeling.Data.Type
 
-data Dependencies a = Dependencies
-    { named :: Maybe (Map ElementName a)
-    , additional :: Maybe (Seq a)
-    } deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
-
-deriving via (AesonWrapper (Dependencies a)) instance ToJSON a => ToJSON (Dependencies a)
-deriving via (AesonWrapper (Dependencies a)) instance FromJSON a => FromJSON (Dependencies a)
-
 data Space a = Space
     { nspart :: NamespacePart
     , inputs :: Maybe (Map ParamName Param)

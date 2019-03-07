@@ -36,10 +36,10 @@ test_example = testCase "example" $ do
             , root = ModelSpaceFix (ModelSpace (Space
                 { nspart = "whatever"
                 , inputs = Nothing
-                , element = DepModel
-                    { dependencies = Nothing
-                    , model = DirectModel (ModelDirectAttrs "something")
-                    }
+                , element = DirectModel (ModelDirectAttrs
+                    { name = "something"
+                    , dependencies = Nothing
+                    })
                 } ))
             })
     actual <- decodeYamlFile "testdata/example.yaml"

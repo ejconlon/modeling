@@ -43,10 +43,21 @@ instance ToJSON ModelCon where
 instance FromJSON ModelCon where
     parseJSON = injectionParseJSON renderErrorMsg modelConToText
 
-data ModelDirectAttrs = ModelDirectAttrs
+data Dependencies a = Dependencies
+    { named :: Maybe (Map ElementName a)
+    , additional :: Maybe (Seq a)
+    } deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
+
+deriving via (AesonWrapper (Dependencies a)) instance ToJSON a => ToJSON (Dependencies a)
+deriving via (AesonWrapper (Dependencies a)) instance FromJSON a => FromJSON (Dependencies a)
+
+data ModelDirectAttrs a = ModelDirectAttrs
     { name :: Text
-    } deriving (Generic, Show, Eq)
-      deriving (ToJSON, FromJSON) via (AesonWrapper ModelDirectAttrs)
+    , dependencies :: Maybe (Dependencies a)
+    } deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
+
+deriving via (AesonWrapper (ModelDirectAttrs a)) instance ToJSON a => ToJSON (ModelDirectAttrs a)
+deriving via (AesonWrapper (ModelDirectAttrs a)) instance FromJSON a => FromJSON (ModelDirectAttrs a)
 
 data ModelSerialAttrs a = ModelSerialAttrs
     { models :: Seq a
@@ -66,7 +77,7 @@ deriving via (AesonWrapper (ModelSplitAttrs a)) instance ToJSON a => ToJSON (Mod
 deriving via (AesonWrapper (ModelSplitAttrs a)) instance FromJSON a => FromJSON (ModelSplitAttrs a)
 
 data ModelAttrs a = ModelAttrs
-    { direct :: Maybe (ModelDirectAttrs)
+    { direct :: Maybe (ModelDirectAttrs a)
     , serial :: Maybe (ModelSerialAttrs a)
     , split :: Maybe (ModelSplitAttrs a)
     } deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
@@ -86,7 +97,7 @@ deriving via (AesonWrapper (ModelSum a)) instance ToJSON a => ToJSON (ModelSum a
 deriving via (AesonWrapper (ModelSum a)) instance FromJSON a => FromJSON (ModelSum a)
 
 data Model a =
-      DirectModel ModelDirectAttrs
+      DirectModel (ModelDirectAttrs a)
     | SerialModel (ModelSerialAttrs a)
     | SplitModel (ModelSplitAttrs a)
     deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
