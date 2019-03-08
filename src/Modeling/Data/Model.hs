@@ -24,32 +24,26 @@ data ModelCon =
     | ModelConAdaptor
     | ModelConSplit
     deriving (Generic, Show, Eq, Enum, Bounded)
-    deriving (ToJSON, FromJSON) via (AesonWrapper ModelCon)
+    deriving (HasJSONOptions, ToJSON, FromJSON) via (AesonTag ModelCon)
 
-instance HasJSONOptions ModelCon where getJSONOptions _ = tagOptions "ModelCon"
+instance HasTagPrefix ModelCon where getTagPrefix _ = "ModelCon"
 
 data Dependencies a = Dependencies
     { named :: Maybe (Map ElementName a)
     , additional :: Maybe (Seq a)
     } deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
-      deriving (ToJSON, FromJSON) via (AesonWrapper (Dependencies a))
-
-instance HasJSONOptions (Dependencies a) where getJSONOptions _= recordOptions
+      deriving (HasJSONOptions, ToJSON, FromJSON) via (AesonRecord (Dependencies a))
 
 data ModelDirectAttrs a = ModelDirectAttrs
     { name :: ModelName
     , dependencies :: Maybe (Dependencies a)
     } deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
-      deriving (ToJSON, FromJSON) via (AesonWrapper (ModelDirectAttrs a))
-
-instance HasJSONOptions (ModelDirectAttrs a) where getJSONOptions _= recordOptions
+      deriving (HasJSONOptions, ToJSON, FromJSON) via (AesonRecord (ModelDirectAttrs a))
 
 data ModelSerialAttrs a = ModelSerialAttrs
     { models :: Seq a
     } deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
-      deriving (ToJSON, FromJSON) via (AesonWrapper (ModelSerialAttrs a))
-
-instance HasJSONOptions (ModelSerialAttrs a) where getJSONOptions _= recordOptions
+      deriving (HasJSONOptions, ToJSON, FromJSON) via (AesonRecord (ModelSerialAttrs a))
 
 data ModelSplitAttrs a = ModelSplitAttrs
     { attribute :: Text
@@ -57,18 +51,14 @@ data ModelSplitAttrs a = ModelSplitAttrs
     , other :: Maybe Text
     , model :: a
     } deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
-      deriving (ToJSON, FromJSON) via (AesonWrapper (ModelSplitAttrs a))
-
-instance HasJSONOptions (ModelSplitAttrs a) where getJSONOptions _= recordOptions
+      deriving (HasJSONOptions, ToJSON, FromJSON) via (AesonRecord (ModelSplitAttrs a))
 
 data ModelAttrs a = ModelAttrs
     { direct :: Maybe (ModelDirectAttrs a)
     , serial :: Maybe (ModelSerialAttrs a)
     , split :: Maybe (ModelSplitAttrs a)
     } deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
-      deriving (ToJSON, FromJSON) via (AesonWrapper (ModelAttrs a))
-
-instance HasJSONOptions (ModelAttrs a) where getJSONOptions _= recordOptions
+      deriving (HasJSONOptions, ToJSON, FromJSON) via (AesonRecord (ModelAttrs a))
 
 emptyModelAttrs :: ModelAttrs a
 emptyModelAttrs = ModelAttrs Nothing Nothing Nothing
@@ -77,9 +67,7 @@ data ModelSum a = ModelSum
     { name :: ModelCon
     , attributes :: Maybe (ModelAttrs a)
     } deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
-      deriving (ToJSON, FromJSON) via (AesonWrapper (ModelSum a))
-
-instance HasJSONOptions (ModelSum a) where getJSONOptions _= recordOptions
+      deriving (HasJSONOptions, ToJSON, FromJSON) via (AesonRecord (ModelSum a))
 
 data Model a =
       DirectModel (ModelDirectAttrs a)

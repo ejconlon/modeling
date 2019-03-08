@@ -27,44 +27,34 @@ data TypeCon =
     | TypeConUnion
     | TypeConAny
     deriving (Generic, Eq, Show, Enum, Bounded)
-    deriving (ToJSON, FromJSON) via (AesonWrapper TypeCon)
+    deriving (HasJSONOptions, ToJSON, FromJSON) via (AesonTag TypeCon)
 
-instance HasJSONOptions TypeCon where getJSONOptions _ = tagOptions "TypeCon"
+instance HasTagPrefix TypeCon where getTagPrefix _ = "TypeCon"
 
 data TypeSingleAttrs a = TypeSingleAttrs
     { ty :: a
     } deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
-      deriving (ToJSON, FromJSON) via (AesonWrapper (TypeSingleAttrs a))
-
-instance HasJSONOptions (TypeSingleAttrs a) where getJSONOptions _= recordOptions
+      deriving (HasJSONOptions, ToJSON, FromJSON) via (AesonRecord (TypeSingleAttrs a))
 
 data TypeReferenceAttrs = TypeReferenceAttrs
     { name :: TypeName
     } deriving (Generic, Show, Eq)
-      deriving (ToJSON, FromJSON) via (AesonWrapper TypeReferenceAttrs)
-
-instance HasJSONOptions TypeReferenceAttrs where getJSONOptions _= recordOptions
+      deriving (HasJSONOptions, ToJSON, FromJSON) via (AesonRecord TypeReferenceAttrs)
 
 data TypeStructAttrs a = TypeStructAttrs
     { fields :: Map FieldName a
     } deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
-      deriving (ToJSON, FromJSON) via (AesonWrapper (TypeStructAttrs a))
-
-instance HasJSONOptions (TypeStructAttrs a) where getJSONOptions _= recordOptions
+      deriving (HasJSONOptions, ToJSON, FromJSON) via (AesonRecord (TypeStructAttrs a))
 
 data TypeEnumAttrs = TypeEnumAttrs
     { values :: Seq EnumName
     } deriving (Generic, Show, Eq)
-      deriving (ToJSON, FromJSON) via (AesonWrapper TypeEnumAttrs)
-
-instance HasJSONOptions TypeEnumAttrs where getJSONOptions _= recordOptions
+      deriving (HasJSONOptions, ToJSON, FromJSON) via (AesonRecord TypeEnumAttrs)
 
 data TypeUnionAttrs a = TypeUnionAttrs
     { elements :: Map BranchName a
     } deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
-      deriving (ToJSON, FromJSON) via (AesonWrapper (TypeUnionAttrs a))
-
-instance HasJSONOptions (TypeUnionAttrs a) where getJSONOptions _= recordOptions
+      deriving (HasJSONOptions, ToJSON, FromJSON) via (AesonRecord (TypeUnionAttrs a))
 
 data TypeAttrs a = TypeAttrs
     { optional :: Maybe (TypeSingleAttrs a)
@@ -75,9 +65,7 @@ data TypeAttrs a = TypeAttrs
     , enum :: Maybe TypeEnumAttrs
     , union :: Maybe (TypeUnionAttrs a)
     } deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
-      deriving (ToJSON, FromJSON) via (AesonWrapper (TypeAttrs a))
-
-instance HasJSONOptions (TypeAttrs a) where getJSONOptions _= recordOptions
+      deriving (HasJSONOptions, ToJSON, FromJSON) via (AesonRecord (TypeAttrs a))
 
 emptyTypeAttrs :: TypeAttrs a
 emptyTypeAttrs = TypeAttrs Nothing Nothing Nothing Nothing Nothing Nothing Nothing
@@ -86,9 +74,7 @@ data TypeSum a = TypeSum
     { name :: TypeCon
     , attributes :: Maybe (TypeAttrs a)
     } deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
-      deriving (ToJSON, FromJSON) via (AesonWrapper (TypeSum a))
-
-instance HasJSONOptions (TypeSum a) where getJSONOptions _= recordOptions
+      deriving (HasJSONOptions, ToJSON, FromJSON) via (AesonRecord (TypeSum a))
 
 newtype TypeSumFix = TypeSumFix { unTypeSumFix :: TypeSum TypeSumFix }
     deriving (Generic, Show, Eq)

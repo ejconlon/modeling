@@ -1,7 +1,14 @@
 {-# LANGUAGE ScopedTypeVariables  #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module Modeling.Data.Aeson where
+module Modeling.Data.Aeson (
+      AesonRecord (..)
+    , AesonNewtype (..)
+    , AesonTag (..)
+    , HasJSONOptions (..)
+    , HasTagPrefix (..)
+    , liftParser
+) where
 
 import Control.Newtype.Generics (Newtype, O, pack, unpack)
 import Data.Aeson
@@ -32,14 +39,32 @@ newtypeOptions = defaultOptions
 class HasJSONOptions a where
     getJSONOptions :: Proxy a -> Options
 
-newtype AesonWrapper a = AesonWrapper { unAesonWrapper :: a }
+class HasTagPrefix a where
+    getTagPrefix :: Proxy a -> String
 
-instance (HasJSONOptions a, Generic a, GToJSON Zero (Rep a), GToEncoding Zero (Rep a)) => ToJSON (AesonWrapper a) where
-    toJSON = genericToJSON (getJSONOptions (Proxy :: Proxy a)) . unAesonWrapper
-    toEncoding = genericToEncoding (getJSONOptions (Proxy :: Proxy a)) . unAesonWrapper
+newtype AesonTag a = AesonTag { unAesonTag :: a }
 
-instance (HasJSONOptions a, Generic a, GFromJSON Zero (Rep a)) => FromJSON (AesonWrapper a) where
-    parseJSON = (AesonWrapper <$>) . genericParseJSON (getJSONOptions (Proxy :: Proxy a))
+instance HasTagPrefix a => HasJSONOptions (AesonTag a) where
+    getJSONOptions _ = tagOptions (getTagPrefix (Proxy :: Proxy a))
+
+instance (HasJSONOptions (AesonTag a), Generic a, GToJSON Zero (Rep a), GToEncoding Zero (Rep a)) => ToJSON (AesonTag a) where
+    toJSON = genericToJSON (getJSONOptions (Proxy :: Proxy (AesonTag a))) . unAesonTag
+    toEncoding = genericToEncoding (getJSONOptions (Proxy :: Proxy (AesonTag a))) . unAesonTag
+
+instance (HasJSONOptions (AesonTag a), Generic a, GFromJSON Zero (Rep a)) => FromJSON (AesonTag a) where
+    parseJSON = (AesonTag <$>) . genericParseJSON (getJSONOptions (Proxy :: Proxy (AesonTag a)))
+
+newtype AesonRecord a = AesonRecord { unAesonRecord :: a }
+
+instance HasJSONOptions (AesonRecord a) where
+    getJSONOptions _ = recordOptions
+
+instance (HasJSONOptions (AesonRecord a), Generic a, GToJSON Zero (Rep a), GToEncoding Zero (Rep a)) => ToJSON (AesonRecord a) where
+    toJSON = genericToJSON (getJSONOptions (Proxy :: Proxy (AesonRecord a))) . unAesonRecord
+    toEncoding = genericToEncoding (getJSONOptions (Proxy :: Proxy (AesonRecord a))) . unAesonRecord
+
+instance (HasJSONOptions (AesonRecord a), Generic a, GFromJSON Zero (Rep a)) => FromJSON (AesonRecord a) where
+    parseJSON = (AesonRecord <$>) . genericParseJSON (getJSONOptions (Proxy :: Proxy (AesonRecord a)))
 
 newtype AesonNewtype n o = AesonNewtype { unAesonNewtype :: n }
 
