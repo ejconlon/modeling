@@ -23,6 +23,7 @@ data Signature = Signature
     { inputs :: Maybe (Map ParamName TypeFix)
     , outputs :: Maybe (Map ParamName TypeFix)
     , tydefs :: Maybe (Map TypeName TypeFix)
+    , external :: Maybe (Seq TypeName)
     } deriving (Generic, Show, Eq)
       deriving (ToJSON, FromJSON) via (AesonWrapper Signature)
 

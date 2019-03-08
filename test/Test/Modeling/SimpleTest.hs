@@ -32,6 +32,7 @@ test_example = testCase "example" $ do
                 { inputs = Just (Map.singleton "whatever" (TypeFix StringType))
                 , outputs = Nothing
                 , tydefs = Nothing
+                , external = Nothing
                 })
             , root = ModelSpaceFix (ModelSpace (Space
                 { nspart = "whatever"
