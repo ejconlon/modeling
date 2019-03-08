@@ -35,7 +35,7 @@ data RealTypeError =
       MissingParamError ParamName
     | MissingTypeError TypeName
     | MissingReferencesError (Set TypeName)
-    | MissingElementError ElementName
+    | MissingModelError ModelName
     deriving (Generic, Show, Eq)
 
 -- TODO eventually we want this to be serializable
@@ -48,7 +48,7 @@ data TypeEnv = TypeEnv
     { position :: Seq Dir
     , tydefs :: Map TypeName TypeFix
     , params :: Map ParamName TypeFix
-    , elements :: Map ElementName ModelType
+    , models :: Map ModelName ModelType
     } deriving (Generic, Show, Eq)
 
 type TypeC m = (MonadReader TypeEnv m, MonadError TypeError m)
@@ -90,8 +90,8 @@ makeTypeError e = TypeError <$> view (field @"position") <*> pure e
 throwTypeError :: TypeC m => RealTypeError -> m a
 throwTypeError e = makeTypeError e >>= throwError
 
-getElement :: TypeC m => ElementName -> m ModelType
-getElement = readerGet (field @"elements") (throwTypeError . MissingElementError)
+getModel :: TypeC m => ModelName -> m ModelType
+getModel = readerGet (field @"models") (throwTypeError . MissingModelError)
 
 splitType :: TypeC m => Seq ModelType -> m ModelType
 splitType = undefined
@@ -99,7 +99,7 @@ splitType = undefined
 inferModelType :: TypeC m => Model (ModelSpaceFix) -> m ModelType
 inferModelType m =
     case m of
-        DirectModel (ModelDirectAttrs { name }) -> getElement name
+        DirectModel (ModelDirectAttrs { name }) -> getModel name
         SerialModel (ModelSerialAttrs { models }) -> traverse (inferModelType . element . unModelSpace . unModelSpaceFix) models >>= splitType
         SplitModel (ModelSplitAttrs {}) -> undefined
 

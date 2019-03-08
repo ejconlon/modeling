@@ -24,6 +24,11 @@ tagOptions prefix =
         , constructorTagModifier = snakeCase . drop prefixLen
         }
 
+newtypeOptions :: Options
+newtypeOptions = defaultOptions
+    { unwrapUnaryRecords = True
+    }
+
 class HasJSONOptions a where
     getJSONOptions :: Proxy a -> Options
 
@@ -37,6 +42,9 @@ instance (HasJSONOptions a, Generic a, GFromJSON Zero (Rep a)) => FromJSON (Aeso
     parseJSON = (AesonWrapper <$>) . genericParseJSON (getJSONOptions (Proxy :: Proxy a))
 
 newtype AesonNewtype n o = AesonNewtype { unAesonNewtype :: n }
+
+instance HasJSONOptions (AesonNewtype n o) where
+    getJSONOptions _ = newtypeOptions
 
 instance (Newtype n, o ~ O n, ToJSON o) => ToJSON (AesonNewtype n o) where
     toJSON = toJSON . unpack . unAesonNewtype

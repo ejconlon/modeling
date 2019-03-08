@@ -34,40 +34,37 @@ instance HasJSONOptions TypeCon where getJSONOptions _ = tagOptions "TypeCon"
 data TypeSingleAttrs a = TypeSingleAttrs
     { ty :: a
     } deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
+      deriving (ToJSON, FromJSON) via (AesonWrapper (TypeSingleAttrs a))
 
 instance HasJSONOptions (TypeSingleAttrs a) where getJSONOptions _= recordOptions
-deriving via (AesonWrapper (TypeSingleAttrs a)) instance ToJSON a => ToJSON (TypeSingleAttrs a)
-deriving via (AesonWrapper (TypeSingleAttrs a)) instance FromJSON a => FromJSON (TypeSingleAttrs a)
 
 data TypeReferenceAttrs = TypeReferenceAttrs
-    { name :: Text
+    { name :: TypeName
     } deriving (Generic, Show, Eq)
       deriving (ToJSON, FromJSON) via (AesonWrapper TypeReferenceAttrs)
 
 instance HasJSONOptions TypeReferenceAttrs where getJSONOptions _= recordOptions
 
 data TypeStructAttrs a = TypeStructAttrs
-    { fields :: Map Text a
+    { fields :: Map FieldName a
     } deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
+      deriving (ToJSON, FromJSON) via (AesonWrapper (TypeStructAttrs a))
 
 instance HasJSONOptions (TypeStructAttrs a) where getJSONOptions _= recordOptions
-deriving via (AesonWrapper (TypeStructAttrs a)) instance ToJSON a => ToJSON (TypeStructAttrs a)
-deriving via (AesonWrapper (TypeStructAttrs a)) instance FromJSON a => FromJSON (TypeStructAttrs a)
 
 data TypeEnumAttrs = TypeEnumAttrs
-    { values :: Seq Text
+    { values :: Seq EnumName
     } deriving (Generic, Show, Eq)
       deriving (ToJSON, FromJSON) via (AesonWrapper TypeEnumAttrs)
 
 instance HasJSONOptions TypeEnumAttrs where getJSONOptions _= recordOptions
 
 data TypeUnionAttrs a = TypeUnionAttrs
-    { elements :: Map Text a
+    { elements :: Map BranchName a
     } deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
+      deriving (ToJSON, FromJSON) via (AesonWrapper (TypeUnionAttrs a))
 
 instance HasJSONOptions (TypeUnionAttrs a) where getJSONOptions _= recordOptions
-deriving via (AesonWrapper (TypeUnionAttrs a)) instance ToJSON a => ToJSON (TypeUnionAttrs a)
-deriving via (AesonWrapper (TypeUnionAttrs a)) instance FromJSON a => FromJSON (TypeUnionAttrs a)
 
 data TypeAttrs a = TypeAttrs
     { optional :: Maybe (TypeSingleAttrs a)
@@ -78,10 +75,9 @@ data TypeAttrs a = TypeAttrs
     , enum :: Maybe TypeEnumAttrs
     , union :: Maybe (TypeUnionAttrs a)
     } deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
+      deriving (ToJSON, FromJSON) via (AesonWrapper (TypeAttrs a))
 
 instance HasJSONOptions (TypeAttrs a) where getJSONOptions _= recordOptions
-deriving via (AesonWrapper (TypeAttrs a)) instance ToJSON a => ToJSON (TypeAttrs a)
-deriving via (AesonWrapper (TypeAttrs a)) instance FromJSON a => FromJSON (TypeAttrs a)
 
 emptyTypeAttrs :: TypeAttrs a
 emptyTypeAttrs = TypeAttrs Nothing Nothing Nothing Nothing Nothing Nothing Nothing
@@ -90,17 +86,15 @@ data TypeSum a = TypeSum
     { name :: TypeCon
     , attributes :: Maybe (TypeAttrs a)
     } deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
+      deriving (ToJSON, FromJSON) via (AesonWrapper (TypeSum a))
 
 instance HasJSONOptions (TypeSum a) where getJSONOptions _= recordOptions
-deriving via (AesonWrapper (TypeSum a)) instance ToJSON a => ToJSON (TypeSum a)
-deriving via (AesonWrapper (TypeSum a)) instance FromJSON a => FromJSON (TypeSum a)
 
 newtype TypeSumFix = TypeSumFix { unTypeSumFix :: TypeSum TypeSumFix }
     deriving (Generic, Show, Eq)
+    deriving (HasJSONOptions, ToJSON, FromJSON) via (AesonNewtype TypeSumFix (TypeSum TypeSumFix))
 
 instance Newtype TypeSumFix
-deriving via (AesonNewtype TypeSumFix (TypeSum TypeSumFix)) instance ToJSON TypeSumFix
-deriving via (AesonNewtype TypeSumFix (TypeSum TypeSumFix)) instance FromJSON TypeSumFix
 
 data Type a =
     StringType
@@ -158,7 +152,6 @@ instance FromJSON a => FromJSON (Type a) where
 
 newtype TypeFix = TypeFix { unTypeFix :: Type TypeFix }
     deriving (Generic, Show, Eq)
+    deriving (HasJSONOptions, ToJSON, FromJSON) via (AesonNewtype TypeFix (Type TypeFix))
 
 instance Newtype TypeFix
-deriving via (AesonNewtype TypeFix (Type TypeFix)) instance ToJSON TypeFix
-deriving via (AesonNewtype TypeFix (Type TypeFix)) instance FromJSON TypeFix
