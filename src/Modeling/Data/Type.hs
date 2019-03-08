@@ -10,7 +10,6 @@ import Data.Text (Text)
 import qualified Data.Text as T
 import GHC.Generics (Generic)
 import Modeling.Data.Aeson
-import Modeling.Data.Bidi
 import Modeling.Data.Common
 import Modeling.Data.Util
 
@@ -28,45 +27,9 @@ data TypeCon =
     | TypeConUnion
     | TypeConAny
     deriving (Generic, Eq, Show, Enum, Bounded)
+    deriving (ToJSON, FromJSON) via (AesonWrapper TypeCon)
 
-typeConToText :: Injection ErrorMsg TypeCon Text
-typeConToText = Injection apply invert where
-    apply t =
-        case t of
-            TypeConString -> "string"
-            TypeConLong -> "long"
-            TypeConDouble -> "double"
-            TypeConBoolean -> "boolean"
-            TypeConOptional -> "optional"
-            TypeConList -> "list"
-            TypeConStringMap -> "stringmap"
-            TypeConStruct -> "struct"
-            TypeConReference -> "reference"
-            TypeConEnum -> "enum"
-            TypeConUnion -> "union"
-            TypeConAny -> "any"
-    invert u =
-        case u of
-            "string" -> Right TypeConString
-            "long" -> Right TypeConLong
-            "double" -> Right TypeConDouble
-            "boolean" -> Right TypeConBoolean
-            "optional" -> Right TypeConOptional
-            "list" -> Right TypeConList
-            "stringmap" -> Right TypeConStringMap
-            "struct" -> Right TypeConStruct
-            "reference" -> Right TypeConReference
-            "enum" -> Right TypeConEnum
-            "union" -> Right TypeConUnion
-            "any" -> Right TypeConAny
-            _ -> Left (ErrorMsg ("Unknown type name " <> u))
-
-instance ToJSON TypeCon where
-    toJSON = injectionToJSON typeConToText
-    toEncoding = injectionToEncoding typeConToText
-
-instance FromJSON TypeCon where
-    parseJSON = injectionParseJSON renderErrorMsg typeConToText
+instance HasJSONOptions TypeCon where getJSONOptions _ = tagOptions "TypeCon"
 
 data TypeSingleAttrs a = TypeSingleAttrs
     { ty :: a

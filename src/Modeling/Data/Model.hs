@@ -6,7 +6,6 @@ import Data.Sequence (Seq)
 import Data.Text (Text)
 import GHC.Generics (Generic)
 import Modeling.Data.Aeson
-import Modeling.Data.Bidi
 import Modeling.Data.Common
 import Modeling.Data.Util
 
@@ -17,31 +16,9 @@ data ModelCon =
     | ModelConAdaptor
     | ModelConSplit
     deriving (Generic, Show, Eq, Enum, Bounded)
+    deriving (ToJSON, FromJSON) via (AesonWrapper ModelCon)
 
-modelConToText :: Injection ErrorMsg ModelCon Text
-modelConToText = Injection apply invert where
-    apply t =
-        case t of
-            ModelConDirect -> "direct"
-            ModelConSerial -> "serial"
-            ModelConParallel -> "parallel"
-            ModelConAdaptor -> "adaptor"
-            ModelConSplit -> "split"
-    invert u =
-        case u of
-            "direct" -> Right ModelConDirect
-            "serial" -> Right ModelConSerial
-            "parallel" -> Right ModelConParallel
-            "adaptor" -> Right ModelConAdaptor
-            "split" -> Right ModelConSplit
-            _ -> Left (ErrorMsg ("Unknown model name " <> u))
-
-instance ToJSON ModelCon where
-    toJSON = injectionToJSON modelConToText
-    toEncoding = injectionToEncoding modelConToText
-
-instance FromJSON ModelCon where
-    parseJSON = injectionParseJSON renderErrorMsg modelConToText
+instance HasJSONOptions ModelCon where getJSONOptions _ = tagOptions "ModelCon"
 
 data Dependencies a = Dependencies
     { named :: Maybe (Map ElementName a)

@@ -4,7 +4,6 @@ import Data.Aeson
 import Data.Text (Text)
 import GHC.Generics
 import Modeling.Data.Aeson
-import Modeling.Data.Bidi
 import Modeling.Data.Common
 import Modeling.Data.Util
 
@@ -13,27 +12,9 @@ data ParamCon =
     | ParamConExternal
     | ParamConInternal
     deriving (Generic, Eq, Show, Enum, Bounded)
+    deriving (ToJSON, FromJSON) via (AesonWrapper ParamCon)
 
-paramConToText :: Injection ErrorMsg ParamCon Text
-paramConToText = Injection apply invert where
-    apply t =
-        case t of
-            ParamConLiteral -> "literal"
-            ParamConExternal -> "external"
-            ParamConInternal -> "internal"
-    invert u =
-        case u of
-            "literal" -> Right ParamConLiteral
-            "external" -> Right ParamConExternal
-            "internal" -> Right ParamConInternal
-            _ -> Left (ErrorMsg ("Unknown param con " <> u))
-
-instance ToJSON ParamCon where
-    toJSON = injectionToJSON paramConToText
-    toEncoding = injectionToEncoding paramConToText
-
-instance FromJSON ParamCon where
-    parseJSON = injectionParseJSON renderErrorMsg paramConToText
+instance HasJSONOptions ParamCon where getJSONOptions _ = tagOptions "ParamCon"
 
 data LiteralParamAttrs = LiteralParamAttrs
     { value :: Value
@@ -77,13 +58,13 @@ data ParamSum = ParamSum
 
 instance HasJSONOptions ParamSum where getJSONOptions _= recordOptions
 
-paramSumPairBijection :: Bijection ParamSum (ParamCon, Maybe ParamAttrs)
-paramSumPairBijection = Bijection apl inv where
-    apl (ParamSum tn ma) = (tn, ma)
-    inv (n, ma) = ParamSum n ma
+-- paramSumPairBijection :: Bijection ParamSum (ParamCon, Maybe ParamAttrs)
+-- paramSumPairBijection = Bijection apl inv where
+--     apl (ParamSum tn ma) = (tn, ma)
+--     inv (n, ma) = ParamSum n ma
 
-paramSumSumInjection :: Injection ErrorMsg ParamSum (Sum ParamAttrs)
-paramSumSumInjection = domainInjection' paramConToText paramSumPairBijection
+-- paramSumSumInjection :: Injection ErrorMsg ParamSum (Sum ParamAttrs)
+-- paramSumSumInjection = domainInjection' paramConToText paramSumPairBijection
 
 data Param =
       LiteralParam LiteralParamAttrs
@@ -91,25 +72,23 @@ data Param =
     | InternalParam InternalParamAttrs
     deriving (Generic, Eq, Show)
 
-paramPairInjection :: Injection ErrorMsg Param (ParamCon, Maybe ParamAttrs)
-paramPairInjection = Injection apl inv where
-    apl t =
-        case t of
-            LiteralParam attrs -> (ParamConLiteral, Just (emptyParamAttrs { literal = Just attrs }))
-            ExternalParam attrs -> (ParamConExternal, Just (emptyParamAttrs { external = Just attrs }))
-            InternalParam attrs -> (ParamConInternal, Just (emptyParamAttrs { internal = Just attrs }))
-    inv (n, ma) = f ma where
-        f = case n of
-            ParamConLiteral -> withAttrs literal LiteralParam
-            ParamConExternal -> withAttrs external ExternalParam
-            ParamConInternal -> withAttrs internal InternalParam
+paramToPair :: Param -> ParamSum
+paramToPair t =
+    case t of
+        LiteralParam attrs -> ParamSum ParamConLiteral (Just (emptyParamAttrs { literal = Just attrs }))
+        ExternalParam attrs -> ParamSum ParamConExternal (Just (emptyParamAttrs { external = Just attrs }))
+        InternalParam attrs -> ParamSum ParamConInternal (Just (emptyParamAttrs { internal = Just attrs }))
 
-paramInjection :: Injection ErrorMsg Param ParamSum
-paramInjection = composeLeft (flipBijection paramSumPairBijection) paramPairInjection
+paramFromPair :: ParamSum -> Either ErrorMsg Param
+paramFromPair (ParamSum n ma) = f ma where
+    f = case n of
+        ParamConLiteral -> withAttrs literal LiteralParam
+        ParamConExternal -> withAttrs external ExternalParam
+        ParamConInternal -> withAttrs internal InternalParam
 
 instance ToJSON Param where
-    toJSON = injectionToJSON paramInjection
-    toEncoding = injectionToEncoding paramInjection
+    toJSON = toJSON . paramToPair
+    toEncoding = toEncoding . paramToPair
 
 instance FromJSON Param where
-    parseJSON = injectionParseJSON renderErrorMsg paramInjection
+    parseJSON = liftParser renderErrorMsg paramFromPair . parseJSON
