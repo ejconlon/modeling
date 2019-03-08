@@ -16,6 +16,7 @@ data Space a = Space
     , element :: a
     } deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
 
+instance HasJSONOptions (Space a) where getJSONOptions _ = recordOptions
 deriving via (AesonWrapper (Space a)) instance ToJSON a => ToJSON (Space a)
 deriving via (AesonWrapper (Space a)) instance FromJSON a => FromJSON (Space a)
 
@@ -27,10 +28,13 @@ data Signature = Signature
     } deriving (Generic, Show, Eq)
       deriving (ToJSON, FromJSON) via (AesonWrapper Signature)
 
+instance HasJSONOptions Signature where getJSONOptions _ = recordOptions
+
 data Bundle a = Bundle
     { signature :: Maybe Signature
     , root :: a
     } deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
 
+instance HasJSONOptions (Bundle a) where getJSONOptions _ = recordOptions
 deriving via (AesonWrapper (Bundle a)) instance ToJSON a => ToJSON (Bundle a)
 deriving via (AesonWrapper (Bundle a)) instance FromJSON a => FromJSON (Bundle a)

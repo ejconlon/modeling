@@ -1,3 +1,4 @@
+{-# LANGUAGE ScopedTypeVariables  #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Modeling.Data.Aeson where
@@ -6,22 +7,34 @@ import Control.Newtype.Generics (Newtype, O, pack, unpack)
 import Data.Aeson
 import Data.Aeson.Casing        (snakeCase)
 import Data.Aeson.Types         (Parser)
+import Data.Proxy               (Proxy (..))
 import GHC.Generics             (Generic, Rep)
 
-options :: Options
-options = defaultOptions
+recordOptions :: Options
+recordOptions = defaultOptions
     { omitNothingFields = True
     , fieldLabelModifier = snakeCase
     }
 
+tagOptions :: String -> Options
+tagOptions prefix =
+    let prefixLen = length prefix
+    in defaultOptions
+        { allNullaryToStringTag = True
+        , constructorTagModifier = snakeCase . drop prefixLen
+        }
+
+class HasJSONOptions a where
+    getJSONOptions :: Proxy a -> Options
+
 newtype AesonWrapper a = AesonWrapper { unAesonWrapper :: a }
 
-instance (Generic a, GToJSON Zero (Rep a), GToEncoding Zero (Rep a)) => ToJSON (AesonWrapper a) where
-    toJSON = genericToJSON options . unAesonWrapper
-    toEncoding = genericToEncoding options . unAesonWrapper
+instance (HasJSONOptions a, Generic a, GToJSON Zero (Rep a), GToEncoding Zero (Rep a)) => ToJSON (AesonWrapper a) where
+    toJSON = genericToJSON (getJSONOptions (Proxy :: Proxy a)) . unAesonWrapper
+    toEncoding = genericToEncoding (getJSONOptions (Proxy :: Proxy a)) . unAesonWrapper
 
-instance (Generic a, GFromJSON Zero (Rep a)) => FromJSON (AesonWrapper a) where
-    parseJSON = (AesonWrapper <$>) . genericParseJSON options
+instance (HasJSONOptions a, Generic a, GFromJSON Zero (Rep a)) => FromJSON (AesonWrapper a) where
+    parseJSON = (AesonWrapper <$>) . genericParseJSON (getJSONOptions (Proxy :: Proxy a))
 
 newtype AesonNewtype n o = AesonNewtype { unAesonNewtype :: n }
 

@@ -11,29 +11,29 @@ import Modeling.Data.Common
 import Modeling.Data.Util
 
 data ModelCon =
-      DirectModelCon
-    | SerialModelCon
-    | ParallelModelCon
-    | AdaptorModelCon
-    | SplitModelCon
+      ModelConDirect
+    | ModelConSerial
+    | ModelConParallel
+    | ModelConAdaptor
+    | ModelConSplit
     deriving (Generic, Show, Eq, Enum, Bounded)
 
 modelConToText :: Injection ErrorMsg ModelCon Text
 modelConToText = Injection apply invert where
     apply t =
         case t of
-            DirectModelCon -> "direct"
-            SerialModelCon -> "serial"
-            ParallelModelCon -> "parallel"
-            AdaptorModelCon -> "adaptor"
-            SplitModelCon -> "split"
+            ModelConDirect -> "direct"
+            ModelConSerial -> "serial"
+            ModelConParallel -> "parallel"
+            ModelConAdaptor -> "adaptor"
+            ModelConSplit -> "split"
     invert u =
         case u of
-            "direct" -> Right DirectModelCon
-            "serial" -> Right SerialModelCon
-            "parallel" -> Right ParallelModelCon
-            "adaptor" -> Right AdaptorModelCon
-            "split" -> Right SplitModelCon
+            "direct" -> Right ModelConDirect
+            "serial" -> Right ModelConSerial
+            "parallel" -> Right ModelConParallel
+            "adaptor" -> Right ModelConAdaptor
+            "split" -> Right ModelConSplit
             _ -> Left (ErrorMsg ("Unknown model name " <> u))
 
 instance ToJSON ModelCon where
@@ -48,6 +48,7 @@ data Dependencies a = Dependencies
     , additional :: Maybe (Seq a)
     } deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
 
+instance HasJSONOptions (Dependencies a) where getJSONOptions _= recordOptions
 deriving via (AesonWrapper (Dependencies a)) instance ToJSON a => ToJSON (Dependencies a)
 deriving via (AesonWrapper (Dependencies a)) instance FromJSON a => FromJSON (Dependencies a)
 
@@ -56,6 +57,7 @@ data ModelDirectAttrs a = ModelDirectAttrs
     , dependencies :: Maybe (Dependencies a)
     } deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
 
+instance HasJSONOptions (ModelDirectAttrs a) where getJSONOptions _= recordOptions
 deriving via (AesonWrapper (ModelDirectAttrs a)) instance ToJSON a => ToJSON (ModelDirectAttrs a)
 deriving via (AesonWrapper (ModelDirectAttrs a)) instance FromJSON a => FromJSON (ModelDirectAttrs a)
 
@@ -63,6 +65,7 @@ data ModelSerialAttrs a = ModelSerialAttrs
     { models :: Seq a
     } deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
 
+instance HasJSONOptions (ModelSerialAttrs a) where getJSONOptions _= recordOptions
 deriving via (AesonWrapper (ModelSerialAttrs a)) instance ToJSON a => ToJSON (ModelSerialAttrs a)
 deriving via (AesonWrapper (ModelSerialAttrs a)) instance FromJSON a => FromJSON (ModelSerialAttrs a)
 
@@ -73,6 +76,7 @@ data ModelSplitAttrs a = ModelSplitAttrs
     , model :: a
     } deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
 
+instance HasJSONOptions (ModelSplitAttrs a) where getJSONOptions _= recordOptions
 deriving via (AesonWrapper (ModelSplitAttrs a)) instance ToJSON a => ToJSON (ModelSplitAttrs a)
 deriving via (AesonWrapper (ModelSplitAttrs a)) instance FromJSON a => FromJSON (ModelSplitAttrs a)
 
@@ -82,6 +86,7 @@ data ModelAttrs a = ModelAttrs
     , split :: Maybe (ModelSplitAttrs a)
     } deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
 
+instance HasJSONOptions (ModelAttrs a) where getJSONOptions _= recordOptions
 deriving via (AesonWrapper (ModelAttrs a)) instance ToJSON a => ToJSON (ModelAttrs a)
 deriving via (AesonWrapper (ModelAttrs a)) instance FromJSON a => FromJSON (ModelAttrs a)
 
@@ -93,6 +98,7 @@ data ModelSum a = ModelSum
     , attributes :: Maybe (ModelAttrs a)
     } deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
 
+instance HasJSONOptions (ModelSum a) where getJSONOptions _= recordOptions
 deriving via (AesonWrapper (ModelSum a)) instance ToJSON a => ToJSON (ModelSum a)
 deriving via (AesonWrapper (ModelSum a)) instance FromJSON a => FromJSON (ModelSum a)
 
@@ -105,16 +111,16 @@ data Model a =
 modelToPair :: Model a -> ModelSum a
 modelToPair t =
     case t of
-        DirectModel attrs -> ModelSum DirectModelCon (Just (emptyModelAttrs { direct = Just attrs }))
-        SerialModel attrs -> ModelSum SplitModelCon (Just (emptyModelAttrs { serial = Just attrs }))
-        SplitModel attrs -> ModelSum SplitModelCon (Just (emptyModelAttrs { split = Just attrs }))
+        DirectModel attrs -> ModelSum ModelConDirect (Just (emptyModelAttrs { direct = Just attrs }))
+        SerialModel attrs -> ModelSum ModelConSplit (Just (emptyModelAttrs { serial = Just attrs }))
+        SplitModel attrs -> ModelSum ModelConSplit (Just (emptyModelAttrs { split = Just attrs }))
 
 modelFromPair :: ModelSum a -> Either ErrorMsg (Model a)
 modelFromPair (ModelSum n ma) = f ma where
     f = case n of
-        DirectModelCon -> withAttrs direct DirectModel
-        SerialModelCon -> withAttrs serial SerialModel
-        SplitModelCon -> withAttrs split SplitModel
+        ModelConDirect -> withAttrs direct DirectModel
+        ModelConSerial -> withAttrs serial SerialModel
+        ModelConSplit -> withAttrs split SplitModel
 
 instance ToJSON a => ToJSON (Model a) where
     toJSON = toJSON . modelToPair

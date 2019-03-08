@@ -67,3 +67,11 @@ tests:
     - tasty
     - tasty-discover
     - tasty-hunit
+
+executables:
+  tsdef:
+    main: Main.hs
+    source-dirs: tsdef
+    dependencies:
+    - modeling
+    - aeson-typescript

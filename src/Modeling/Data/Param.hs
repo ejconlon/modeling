@@ -9,23 +9,23 @@ import Modeling.Data.Common
 import Modeling.Data.Util
 
 data ParamCon =
-      LiteralParamCon
-    | ExternalParamCon
-    | InternalParamCon
+      ParamConLiteral
+    | ParamConExternal
+    | ParamConInternal
     deriving (Generic, Eq, Show, Enum, Bounded)
 
 paramConToText :: Injection ErrorMsg ParamCon Text
 paramConToText = Injection apply invert where
     apply t =
         case t of
-            LiteralParamCon -> "literal"
-            ExternalParamCon -> "external"
-            InternalParamCon -> "internal"
+            ParamConLiteral -> "literal"
+            ParamConExternal -> "external"
+            ParamConInternal -> "internal"
     invert u =
         case u of
-            "literal" -> Right LiteralParamCon
-            "external" -> Right ExternalParamCon
-            "internal" -> Right InternalParamCon
+            "literal" -> Right ParamConLiteral
+            "external" -> Right ParamConExternal
+            "internal" -> Right ParamConInternal
             _ -> Left (ErrorMsg ("Unknown param con " <> u))
 
 instance ToJSON ParamCon where
@@ -40,16 +40,22 @@ data LiteralParamAttrs = LiteralParamAttrs
     } deriving (Generic, Eq, Show)
       deriving (ToJSON, FromJSON) via (AesonWrapper LiteralParamAttrs)
 
+instance HasJSONOptions LiteralParamAttrs where getJSONOptions _= recordOptions
+
 data ExternalParamAttrs = ExternalParamAttrs
     { ns :: Namespace
     , name :: ParamName
     } deriving (Generic, Eq, Show)
       deriving (ToJSON, FromJSON) via (AesonWrapper ExternalParamAttrs)
 
+instance HasJSONOptions ExternalParamAttrs where getJSONOptions _= recordOptions
+
 data InternalParamAttrs = InternalParamAttrs
     { index :: Int
     } deriving (Generic, Eq, Show)
       deriving (ToJSON, FromJSON) via (AesonWrapper InternalParamAttrs)
+
+instance HasJSONOptions InternalParamAttrs where getJSONOptions _= recordOptions
 
 data ParamAttrs = ParamAttrs
     { literal :: Maybe LiteralParamAttrs
@@ -57,6 +63,8 @@ data ParamAttrs = ParamAttrs
     , internal :: Maybe InternalParamAttrs
     } deriving (Generic, Eq, Show)
       deriving (ToJSON, FromJSON) via (AesonWrapper ParamAttrs)
+
+instance HasJSONOptions ParamAttrs where getJSONOptions _= recordOptions
 
 emptyParamAttrs :: ParamAttrs
 emptyParamAttrs = ParamAttrs Nothing Nothing Nothing
@@ -66,6 +74,8 @@ data ParamSum = ParamSum
     , attributes :: Maybe ParamAttrs
     } deriving (Generic, Eq, Show)
       deriving (ToJSON, FromJSON) via (AesonWrapper ParamSum)
+
+instance HasJSONOptions ParamSum where getJSONOptions _= recordOptions
 
 paramSumPairBijection :: Bijection ParamSum (ParamCon, Maybe ParamAttrs)
 paramSumPairBijection = Bijection apl inv where
@@ -85,14 +95,14 @@ paramPairInjection :: Injection ErrorMsg Param (ParamCon, Maybe ParamAttrs)
 paramPairInjection = Injection apl inv where
     apl t =
         case t of
-            LiteralParam attrs -> (LiteralParamCon, Just (emptyParamAttrs { literal = Just attrs }))
-            ExternalParam attrs -> (ExternalParamCon, Just (emptyParamAttrs { external = Just attrs }))
-            InternalParam attrs -> (InternalParamCon, Just (emptyParamAttrs { internal = Just attrs }))
+            LiteralParam attrs -> (ParamConLiteral, Just (emptyParamAttrs { literal = Just attrs }))
+            ExternalParam attrs -> (ParamConExternal, Just (emptyParamAttrs { external = Just attrs }))
+            InternalParam attrs -> (ParamConInternal, Just (emptyParamAttrs { internal = Just attrs }))
     inv (n, ma) = f ma where
         f = case n of
-            LiteralParamCon -> withAttrs literal LiteralParam
-            ExternalParamCon -> withAttrs external ExternalParam
-            InternalParamCon -> withAttrs internal InternalParam
+            ParamConLiteral -> withAttrs literal LiteralParam
+            ParamConExternal -> withAttrs external ExternalParam
+            ParamConInternal -> withAttrs internal InternalParam
 
 paramInjection :: Injection ErrorMsg Param ParamSum
 paramInjection = composeLeft (flipBijection paramSumPairBijection) paramPairInjection
