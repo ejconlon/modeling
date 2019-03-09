@@ -5,6 +5,7 @@ import Data.Text (Text)
 import GHC.Generics
 import Modeling.Data.Aeson
 import Modeling.Data.Common
+import Modeling.Data.Generics
 import Modeling.Data.Error
 import Modeling.Data.Util
 
@@ -15,6 +16,7 @@ data ParamCon =
     deriving (Generic, Eq, Show, Enum, Bounded)
     deriving (HasJSONOptions, ToJSON, FromJSON) via (AesonTag ParamCon)
 
+instance HasGenRep ParamCon
 instance HasTagPrefix ParamCon where getTagPrefix _ = "ParamCon"
 
 data LiteralParamAttrs = LiteralParamAttrs
@@ -22,16 +24,22 @@ data LiteralParamAttrs = LiteralParamAttrs
     } deriving (Generic, Eq, Show)
       deriving (HasJSONOptions, ToJSON, FromJSON) via (AesonRecord LiteralParamAttrs)
 
+instance HasGenRep LiteralParamAttrs
+
 data ExternalParamAttrs = ExternalParamAttrs
     { ns :: Namespace
     , name :: ParamName
     } deriving (Generic, Eq, Show)
       deriving (HasJSONOptions, ToJSON, FromJSON) via (AesonRecord ExternalParamAttrs)
 
+instance HasGenRep ExternalParamAttrs
+
 data InternalParamAttrs = InternalParamAttrs
     { index :: Int
     } deriving (Generic, Eq, Show)
       deriving (HasJSONOptions, ToJSON, FromJSON) via (AesonRecord InternalParamAttrs)
+
+instance HasGenRep InternalParamAttrs
 
 data ParamAttrs = ParamAttrs
     { literal :: Maybe LiteralParamAttrs
@@ -39,6 +47,8 @@ data ParamAttrs = ParamAttrs
     , internal :: Maybe InternalParamAttrs
     } deriving (Generic, Eq, Show)
       deriving (HasJSONOptions, ToJSON, FromJSON) via (AesonRecord ParamAttrs)
+
+instance HasGenRep ParamAttrs
 
 emptyParamAttrs :: ParamAttrs
 emptyParamAttrs = ParamAttrs Nothing Nothing Nothing
@@ -49,12 +59,15 @@ data ParamSum = ParamSum
     } deriving (Generic, Eq, Show)
       deriving (HasJSONOptions, ToJSON, FromJSON) via (AesonRecord ParamSum)
 
+instance HasGenRep ParamSum
+
 data Param =
       LiteralParam LiteralParamAttrs
     | ExternalParam ExternalParamAttrs
     | InternalParam InternalParamAttrs
     deriving (Generic, Eq, Show)
     deriving (HasJSONOptions, ToJSON, FromJSON) via (AesonInjection Param ParamSum)
+    deriving (HasGenRep) via (GenRepInjection Param ParamSum)
 
 instance Injection Param where
     type InjTarget Param = ParamSum

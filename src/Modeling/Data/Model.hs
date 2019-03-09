@@ -9,12 +9,14 @@ import Data.Text (Text)
 import GHC.Generics (Generic)
 import Modeling.Data.Aeson
 import Modeling.Data.Common
+import Modeling.Data.Generics
 import Modeling.Data.Error
 import Modeling.Data.Util
 
 newtype ModelName = ModelName { unModelName :: Text }
     deriving (Generic, Show, Eq, Ord, IsString, ToJSONKey, FromJSONKey)
     deriving (HasJSONOptions, ToJSON, FromJSON) via (AesonNewtype ModelName Text)
+    deriving (HasGenRep) via (GenRepNewtype ModelName Text)
 
 instance Newtype ModelName
 
@@ -26,6 +28,7 @@ data ModelCon =
     | ModelConSplit
     deriving (Generic, Show, Eq, Enum, Bounded)
     deriving (HasJSONOptions, ToJSON, FromJSON) via (AesonTag ModelCon)
+    deriving (HasGenRep) via (GenRepTag ModelCon)
 
 instance HasTagPrefix ModelCon where getTagPrefix _ = "ModelCon"
 
@@ -35,16 +38,22 @@ data Dependencies a = Dependencies
     } deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
       deriving (HasJSONOptions, ToJSON, FromJSON) via (AesonRecord (Dependencies a))
 
+instance HasGenRep a => HasGenRep (Dependencies a)
+
 data ModelDirectAttrs a = ModelDirectAttrs
     { name :: ModelName
     , dependencies :: Maybe (Dependencies a)
     } deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
       deriving (HasJSONOptions, ToJSON, FromJSON) via (AesonRecord (ModelDirectAttrs a))
 
+instance HasGenRep a => HasGenRep (ModelDirectAttrs a)
+
 data ModelSerialAttrs a = ModelSerialAttrs
     { models :: Seq a
     } deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
       deriving (HasJSONOptions, ToJSON, FromJSON) via (AesonRecord (ModelSerialAttrs a))
+
+instance HasGenRep a => HasGenRep (ModelSerialAttrs a)
 
 data ModelSplitAttrs a = ModelSplitAttrs
     { attribute :: Text
@@ -54,12 +63,16 @@ data ModelSplitAttrs a = ModelSplitAttrs
     } deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
       deriving (HasJSONOptions, ToJSON, FromJSON) via (AesonRecord (ModelSplitAttrs a))
 
+instance HasGenRep a => HasGenRep (ModelSplitAttrs a)
+
 data ModelAttrs a = ModelAttrs
     { direct :: Maybe (ModelDirectAttrs a)
     , serial :: Maybe (ModelSerialAttrs a)
     , split :: Maybe (ModelSplitAttrs a)
     } deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
       deriving (HasJSONOptions, ToJSON, FromJSON) via (AesonRecord (ModelAttrs a))
+
+instance HasGenRep a => HasGenRep (ModelAttrs a)
 
 emptyModelAttrs :: ModelAttrs a
 emptyModelAttrs = ModelAttrs Nothing Nothing Nothing
@@ -70,12 +83,15 @@ data ModelSum a = ModelSum
     } deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
       deriving (HasJSONOptions, ToJSON, FromJSON) via (AesonRecord (ModelSum a))
 
+instance HasGenRep a => HasGenRep (ModelSum a)
+
 data Model a =
       DirectModel (ModelDirectAttrs a)
     | SerialModel (ModelSerialAttrs a)
     | SplitModel (ModelSplitAttrs a)
     deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
     deriving (HasJSONOptions, ToJSON, FromJSON) via (AesonInjection (Model a) (ModelSum a))
+    deriving (HasGenRep) via (GenRepInjection (Model a) (ModelSum a))
 
 instance Injection (Model a) where
     type InjTarget (Model a) = ModelSum a

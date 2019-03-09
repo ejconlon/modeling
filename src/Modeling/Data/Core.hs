@@ -8,6 +8,7 @@ import Data.Sequence (Seq)
 import Data.Text (Text)
 import Modeling.Data.Aeson
 import Modeling.Data.Common
+import Modeling.Data.Generics
 import Modeling.Data.Param
 import Modeling.Data.Type
 
@@ -18,6 +19,8 @@ data Space a = Space
     } deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
       deriving (HasJSONOptions, ToJSON, FromJSON) via (AesonRecord (Space a))
 
+instance HasGenRep a => HasGenRep (Space a)
+
 data Signature = Signature
     { inputs :: Maybe (Map ParamName TypeFix)
     , outputs :: Maybe (Map ParamName TypeFix)
@@ -26,8 +29,12 @@ data Signature = Signature
     } deriving (Generic, Show, Eq)
       deriving (HasJSONOptions, ToJSON, FromJSON) via (AesonRecord Signature)
 
+instance HasGenRep Signature
+
 data Bundle a = Bundle
     { signature :: Maybe Signature
     , root :: a
     } deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
       deriving (HasJSONOptions, ToJSON, FromJSON) via (AesonRecord (Bundle a))
+
+instance HasGenRep a => HasGenRep (Bundle a)
