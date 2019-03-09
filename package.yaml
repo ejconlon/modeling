@@ -22,6 +22,7 @@ dependencies:
 - lens
 - mtl
 - newtype-generics
+- pretty-simple
 - text
 - transformers
 - unordered-containers

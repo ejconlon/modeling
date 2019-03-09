@@ -120,7 +120,9 @@ instance (GHasGenRep f, Datatype c) => GHasGenRep (M1 D c f) where
     gGetGenDecl _ = Just (T.pack (datatypeName m))
         where m = (undefined :: t c f a)
 
-instance (HasGenRep (f Private), Datatype c) => HasGenRep (M1 D c f Private)
+instance (GHasGenRep f, Datatype c) => HasGenRep (M1 D c f Private) where
+    getGenRoot _ = gGetGenRoot (Proxy :: Proxy (M1 D c f Private))
+    getGenDecl _ = Nothing
 
 -- Constructor Metadata
 instance (GHasGenRep f, Constructor c) => GHasGenRep (M1 C c f) where
@@ -128,7 +130,9 @@ instance (GHasGenRep f, Constructor c) => GHasGenRep (M1 C c f) where
         where m = (undefined :: t c f a)
     gGetGenDecl _ = Nothing
 
-instance (HasGenRep (f Private), Constructor c) => HasGenRep (M1 C c f Private)
+instance (GHasGenRep f, Constructor c) => HasGenRep (M1 C c f Private) where
+    getGenRoot _ = gGetGenRoot (Proxy :: Proxy (M1 C c f Private))
+    getGenDecl _ = Nothing
 
 -- Selector Metadata
 instance (GHasGenRep f, Selector c) => GHasGenRep (M1 S c f) where
@@ -136,35 +140,45 @@ instance (GHasGenRep f, Selector c) => GHasGenRep (M1 S c f) where
         where m = (undefined :: t c f a)
     gGetGenDecl _ = Nothing
 
-instance (HasGenRep (f Private), Selector c) => HasGenRep (M1 S c f Private)
+instance (GHasGenRep f, Selector c) => HasGenRep (M1 S c f Private) where
+    getGenRoot _ = gGetGenRoot (Proxy :: Proxy (M1 S c f Private))
+    getGenDecl _ = Nothing
 
 -- Constructor Paramater
 instance HasGenRep a => GHasGenRep (K1 R a) where
     gGetGenRoot _ = GenTypeFix (GenPart (PartCon (getGenRep (undefined :: Proxy a))))
     gGetGenDecl _ = Nothing
 
-instance HasGenRep a => HasGenRep (K1 R a Private)
+instance HasGenRep a => HasGenRep (K1 R a Private) where
+    getGenRoot _ = gGetGenRoot (Proxy :: Proxy (K1 R a Private))
+    getGenDecl _ = Nothing
 
 -- Sum branch
 instance (HasGenRep (f Private), HasGenRep (g Private)) => GHasGenRep (f :+: g) where
     gGetGenRoot _ = GenTypeFix (GenPart (PartSum (getGenRep (Proxy :: Proxy (f Private))) (getGenRep (Proxy :: Proxy (g Private)))))
     gGetGenDecl _ = Nothing
 
-instance (HasGenRep (f Private), HasGenRep (g Private)) => HasGenRep ((f :+: g) Private)
+instance (HasGenRep (f Private), HasGenRep (g Private)) => HasGenRep ((f :+: g) Private) where
+    getGenRoot _ = gGetGenRoot (Proxy :: Proxy ((f :+: g) Private))
+    getGenDecl _ = Nothing
 
 -- Product branch
 instance (HasGenRep (f Private), HasGenRep (g Private)) => GHasGenRep (f :*: g) where
     gGetGenRoot _ = GenTypeFix (GenPart (PartProd (getGenRep (Proxy :: Proxy (f Private))) (getGenRep (Proxy :: Proxy (g Private)))))
     gGetGenDecl _ = Nothing
 
-instance (HasGenRep (f Private), HasGenRep (g Private)) => HasGenRep ((f :*: g) Private)
+instance (HasGenRep (f Private), HasGenRep (g Private)) => HasGenRep ((f :*: g) Private) where
+    getGenRoot _ = gGetGenRoot (Proxy :: Proxy ((f :*: g) Private))
+    getGenDecl _ = Nothing
 
 -- Empty branch
 instance GHasGenRep U1 where
     gGetGenRoot _ = GenTypeFix (GenPart PartEmpty)
     gGetGenDecl _ = Nothing
 
-instance HasGenRep (U1 Private)
+instance HasGenRep (U1 Private) where
+    getGenRoot _ = gGetGenRoot (Proxy :: Proxy (U1 Private))
+    getGenDecl _ = Nothing
 
 -- Wrappers
 
