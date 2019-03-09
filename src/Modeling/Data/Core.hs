@@ -3,6 +3,7 @@ module Modeling.Data.Core where
 import Data.Aeson
 import GHC.Generics (Generic)
 import Data.Map (Map)
+import Data.Proxy (Proxy (..))
 import Data.Sequence (Seq)
 import Data.Text (Text)
 import Modeling.Data.Aeson

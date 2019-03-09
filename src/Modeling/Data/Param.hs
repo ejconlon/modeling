@@ -58,7 +58,7 @@ data Param =
 
 instance Injection Param where
     type InjTarget Param = ParamSum
-    
+
     injApply t =
         case t of
             LiteralParam attrs -> ParamSum ParamConLiteral (Just (emptyParamAttrs { literal = Just attrs }))

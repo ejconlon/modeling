@@ -14,19 +14,17 @@ dependencies:
 - base >= 4.11 && < 5
 - aeson
 - aeson-casing
-- aeson-typescript
 - bytestring
 - containers
 - data-fix
 - generic-lens
+- generics-sop
 - lens
 - mtl
 - newtype-generics
-# - pretty-simple
 - text
 - transformers
 - unordered-containers
-# - vector
 - yaml
 
 default-extensions:
@@ -68,10 +66,3 @@ tests:
     - tasty
     - tasty-discover
     - tasty-hunit
-
-executables:
-  tsdef:
-    main: Main.hs
-    source-dirs: tsdef
-    dependencies:
-    - modeling

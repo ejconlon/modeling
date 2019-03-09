@@ -17,8 +17,11 @@ import Data.Aeson
 import Data.Aeson.Casing        (snakeCase)
 import Data.Aeson.Types         (Parser)
 import Data.Proxy               (Proxy (..))
+import Data.Sequence            (Seq)
 import GHC.Generics             (Generic, Rep)
 import Modeling.Data.Error
+
+-- Options
 
 recordOptions :: Options
 recordOptions = defaultOptions
@@ -39,11 +42,15 @@ newtypeOptions = defaultOptions
     { unwrapUnaryRecords = True
     }
 
+-- Has classes
+
 class HasJSONOptions a where
     getJSONOptions :: Proxy a -> Options
 
 class HasTagPrefix a where
     getTagPrefix :: Proxy a -> String
+
+-- Wrappers
 
 newtype AesonTag a = AesonTag { unAesonTag :: a }
 
