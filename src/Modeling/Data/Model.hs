@@ -9,6 +9,7 @@ import Data.Text (Text)
 import GHC.Generics (Generic)
 import Modeling.Data.Aeson
 import Modeling.Data.Common
+import Modeling.Data.Error
 import Modeling.Data.Util
 
 newtype ModelName = ModelName { unModelName :: Text }
@@ -74,24 +75,19 @@ data Model a =
     | SerialModel (ModelSerialAttrs a)
     | SplitModel (ModelSplitAttrs a)
     deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
+    deriving (HasJSONOptions, ToJSON, FromJSON) via (AesonInjection (Model a) (ModelSum a))
 
-modelToPair :: Model a -> ModelSum a
-modelToPair t =
-    case t of
-        DirectModel attrs -> ModelSum ModelConDirect (Just (emptyModelAttrs { direct = Just attrs }))
-        SerialModel attrs -> ModelSum ModelConSplit (Just (emptyModelAttrs { serial = Just attrs }))
-        SplitModel attrs -> ModelSum ModelConSplit (Just (emptyModelAttrs { split = Just attrs }))
+instance Injection (Model a) where
+    type InjTarget (Model a) = ModelSum a
 
-modelFromPair :: ModelSum a -> Either ErrorMsg (Model a)
-modelFromPair (ModelSum n ma) = f ma where
-    f = case n of
-        ModelConDirect -> withAttrs direct DirectModel
-        ModelConSerial -> withAttrs serial SerialModel
-        ModelConSplit -> withAttrs split SplitModel
+    injApply t =
+        case t of
+            DirectModel attrs -> ModelSum ModelConDirect (Just (emptyModelAttrs { direct = Just attrs }))
+            SerialModel attrs -> ModelSum ModelConSplit (Just (emptyModelAttrs { serial = Just attrs }))
+            SplitModel attrs -> ModelSum ModelConSplit (Just (emptyModelAttrs { split = Just attrs }))
 
-instance ToJSON a => ToJSON (Model a) where
-    toJSON = toJSON . modelToPair
-    toEncoding = toEncoding . modelToPair
-
-instance FromJSON a => FromJSON (Model a) where
-    parseJSON = liftParser renderErrorMsg modelFromPair . parseJSON
+    injInvert (ModelSum n ma) = f ma where
+        f = case n of
+            ModelConDirect -> withAttrs direct DirectModel
+            ModelConSerial -> withAttrs serial SerialModel
+            ModelConSplit -> withAttrs split SplitModel

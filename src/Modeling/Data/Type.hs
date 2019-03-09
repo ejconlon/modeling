@@ -11,6 +11,7 @@ import qualified Data.Text as T
 import GHC.Generics (Generic)
 import Modeling.Data.Aeson
 import Modeling.Data.Common
+import Modeling.Data.Error
 import Modeling.Data.Util
 
 data TypeCon =
@@ -83,58 +84,52 @@ newtype TypeSumFix = TypeSumFix { unTypeSumFix :: TypeSum TypeSumFix }
 instance Newtype TypeSumFix
 
 data Type a =
-    StringType
-  | LongType
-  | DoubleType
-  | BooleanType
-  | OptionalType (TypeSingleAttrs a)
-  | ListType (TypeSingleAttrs a)
-  | StringMapType (TypeSingleAttrs a)
-  | StructType (TypeStructAttrs a)
-  | ReferenceType TypeReferenceAttrs
-  | EnumType TypeEnumAttrs
-  | UnionType (TypeUnionAttrs a)
-  | AnyType
-  deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
+      StringType
+    | LongType
+    | DoubleType
+    | BooleanType
+    | OptionalType (TypeSingleAttrs a)
+    | ListType (TypeSingleAttrs a)
+    | StringMapType (TypeSingleAttrs a)
+    | StructType (TypeStructAttrs a)
+    | ReferenceType TypeReferenceAttrs
+    | EnumType TypeEnumAttrs
+    | UnionType (TypeUnionAttrs a)
+    | AnyType
+    deriving (Generic, Show, Eq, Functor, Foldable, Traversable)
+    deriving (HasJSONOptions, ToJSON, FromJSON) via (AesonInjection (Type a) (TypeSum a))
 
-typeToPair :: Type a -> TypeSum a
-typeToPair t =
-    case t of
-        StringType -> TypeSum TypeConString Nothing
-        LongType -> TypeSum TypeConLong Nothing
-        DoubleType -> TypeSum TypeConDouble Nothing
-        BooleanType -> TypeSum TypeConBoolean Nothing
-        OptionalType attrs -> TypeSum TypeConOptional (Just (emptyTypeAttrs { optional = Just attrs }))
-        ListType attrs -> TypeSum TypeConList (Just (emptyTypeAttrs { list = Just attrs }))
-        StringMapType attrs -> TypeSum TypeConStringMap (Just (emptyTypeAttrs { stringmap = Just attrs }))
-        StructType attrs -> TypeSum TypeConStruct (Just (emptyTypeAttrs { struct = Just attrs }))
-        ReferenceType attrs -> TypeSum TypeConReference (Just (emptyTypeAttrs { reference = Just attrs }))
-        EnumType attrs -> TypeSum TypeConEnum (Just (emptyTypeAttrs { enum = Just attrs }))
-        UnionType attrs -> TypeSum TypeConUnion (Just (emptyTypeAttrs { union = Just attrs }))
-        AnyType -> TypeSum TypeConAny Nothing
+instance Injection (Type a) where
+    type InjTarget (Type a) = TypeSum a
+    injApply t =
+        case t of
+            StringType -> TypeSum TypeConString Nothing
+            LongType -> TypeSum TypeConLong Nothing
+            DoubleType -> TypeSum TypeConDouble Nothing
+            BooleanType -> TypeSum TypeConBoolean Nothing
+            OptionalType attrs -> TypeSum TypeConOptional (Just (emptyTypeAttrs { optional = Just attrs }))
+            ListType attrs -> TypeSum TypeConList (Just (emptyTypeAttrs { list = Just attrs }))
+            StringMapType attrs -> TypeSum TypeConStringMap (Just (emptyTypeAttrs { stringmap = Just attrs }))
+            StructType attrs -> TypeSum TypeConStruct (Just (emptyTypeAttrs { struct = Just attrs }))
+            ReferenceType attrs -> TypeSum TypeConReference (Just (emptyTypeAttrs { reference = Just attrs }))
+            EnumType attrs -> TypeSum TypeConEnum (Just (emptyTypeAttrs { enum = Just attrs }))
+            UnionType attrs -> TypeSum TypeConUnion (Just (emptyTypeAttrs { union = Just attrs }))
+            AnyType -> TypeSum TypeConAny Nothing
 
-typeFromPair :: TypeSum a -> Either ErrorMsg (Type a)
-typeFromPair (TypeSum n ma) = f ma where
-    f = case n of
-        TypeConString -> withoutAttrs StringType
-        TypeConLong -> withoutAttrs LongType
-        TypeConDouble -> withoutAttrs DoubleType
-        TypeConBoolean -> withoutAttrs BooleanType
-        TypeConOptional -> withAttrs optional OptionalType
-        TypeConList -> withAttrs list ListType
-        TypeConStringMap -> withAttrs stringmap StringMapType
-        TypeConStruct -> withAttrs struct StructType
-        TypeConReference -> withAttrs reference ReferenceType
-        TypeConEnum-> withAttrs enum EnumType
-        TypeConUnion -> withAttrs union UnionType
-        TypeConAny -> withoutAttrs AnyType
-
-instance ToJSON a => ToJSON (Type a) where
-    toJSON = toJSON . typeToPair
-    toEncoding = toEncoding . typeToPair
-
-instance FromJSON a => FromJSON (Type a) where
-    parseJSON = liftParser renderErrorMsg typeFromPair . parseJSON
+    injInvert (TypeSum n ma) = f ma where
+        f = case n of
+            TypeConString -> withoutAttrs StringType
+            TypeConLong -> withoutAttrs LongType
+            TypeConDouble -> withoutAttrs DoubleType
+            TypeConBoolean -> withoutAttrs BooleanType
+            TypeConOptional -> withAttrs optional OptionalType
+            TypeConList -> withAttrs list ListType
+            TypeConStringMap -> withAttrs stringmap StringMapType
+            TypeConStruct -> withAttrs struct StructType
+            TypeConReference -> withAttrs reference ReferenceType
+            TypeConEnum-> withAttrs enum EnumType
+            TypeConUnion -> withAttrs union UnionType
+            TypeConAny -> withoutAttrs AnyType
 
 newtype TypeFix = TypeFix { unTypeFix :: Type TypeFix }
     deriving (Generic, Show, Eq)

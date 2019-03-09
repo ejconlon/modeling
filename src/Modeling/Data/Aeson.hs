@@ -1,8 +1,9 @@
-{-# LANGUAGE ScopedTypeVariables  #-}
-{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE ScopedTypeVariables    #-}
+{-# LANGUAGE UndecidableInstances   #-}
 
 module Modeling.Data.Aeson (
-      AesonRecord (..)
+      AesonInjection (..)
+    , AesonRecord (..)
     , AesonNewtype (..)
     , AesonTag (..)
     , HasJSONOptions (..)
@@ -10,12 +11,14 @@ module Modeling.Data.Aeson (
     , liftParser
 ) where
 
+import Control.Arrow (left)
 import Control.Newtype.Generics (Newtype, O, pack, unpack)
 import Data.Aeson
 import Data.Aeson.Casing        (snakeCase)
 import Data.Aeson.Types         (Parser)
 import Data.Proxy               (Proxy (..))
 import GHC.Generics             (Generic, Rep)
+import Modeling.Data.Error
 
 recordOptions :: Options
 recordOptions = defaultOptions
@@ -78,5 +81,17 @@ instance (Newtype n, o ~ O n, ToJSON o) => ToJSON (AesonNewtype n o) where
 instance (Newtype n, o ~ O n, FromJSON o) => FromJSON (AesonNewtype n o) where
     parseJSON = ((AesonNewtype . pack) <$>) . parseJSON
 
-liftParser :: (e -> String) -> (a -> Either e b) -> Parser a -> Parser b
-liftParser r f p = p >>= \a -> either (fail . r) pure (f a)
+liftParser :: (a -> Either String b) -> Parser a -> Parser b
+liftParser f p = p >>= \a -> either fail pure (f a)
+
+newtype AesonInjection a b = AesonInjection { unAesonInjection :: a }
+
+instance HasJSONOptions b => HasJSONOptions (AesonInjection a b) where
+    getJSONOptions _ = getJSONOptions (Proxy :: Proxy b)
+
+instance (HasJSONOptions (AesonInjection a b), Injection a, b ~ InjTarget a, ToJSON b) => ToJSON (AesonInjection a b) where
+    toJSON = toJSON . injApply . unAesonInjection
+    toEncoding = toEncoding . injApply . unAesonInjection
+
+instance (HasJSONOptions (AesonInjection a b), Injection a, b ~ InjTarget a, FromJSON b) => FromJSON (AesonInjection a b) where
+    parseJSON = (AesonInjection <$>) . liftParser (left renderErrorMsg . injInvert) . parseJSON

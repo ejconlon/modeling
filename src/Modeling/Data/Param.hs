@@ -5,6 +5,7 @@ import Data.Text (Text)
 import GHC.Generics
 import Modeling.Data.Aeson
 import Modeling.Data.Common
+import Modeling.Data.Error
 import Modeling.Data.Util
 
 data ParamCon =
@@ -53,24 +54,19 @@ data Param =
     | ExternalParam ExternalParamAttrs
     | InternalParam InternalParamAttrs
     deriving (Generic, Eq, Show)
+    deriving (HasJSONOptions, ToJSON, FromJSON) via (AesonInjection Param ParamSum)
 
-paramToPair :: Param -> ParamSum
-paramToPair t =
-    case t of
-        LiteralParam attrs -> ParamSum ParamConLiteral (Just (emptyParamAttrs { literal = Just attrs }))
-        ExternalParam attrs -> ParamSum ParamConExternal (Just (emptyParamAttrs { external = Just attrs }))
-        InternalParam attrs -> ParamSum ParamConInternal (Just (emptyParamAttrs { internal = Just attrs }))
+instance Injection Param where
+    type InjTarget Param = ParamSum
+    
+    injApply t =
+        case t of
+            LiteralParam attrs -> ParamSum ParamConLiteral (Just (emptyParamAttrs { literal = Just attrs }))
+            ExternalParam attrs -> ParamSum ParamConExternal (Just (emptyParamAttrs { external = Just attrs }))
+            InternalParam attrs -> ParamSum ParamConInternal (Just (emptyParamAttrs { internal = Just attrs }))
 
-paramFromPair :: ParamSum -> Either ErrorMsg Param
-paramFromPair (ParamSum n ma) = f ma where
-    f = case n of
-        ParamConLiteral -> withAttrs literal LiteralParam
-        ParamConExternal -> withAttrs external ExternalParam
-        ParamConInternal -> withAttrs internal InternalParam
-
-instance ToJSON Param where
-    toJSON = toJSON . paramToPair
-    toEncoding = toEncoding . paramToPair
-
-instance FromJSON Param where
-    parseJSON = liftParser renderErrorMsg paramFromPair . parseJSON
+    injInvert (ParamSum n ma) = f ma where
+        f = case n of
+            ParamConLiteral -> withAttrs literal LiteralParam
+            ParamConExternal -> withAttrs external ExternalParam
+            ParamConInternal -> withAttrs internal InternalParam

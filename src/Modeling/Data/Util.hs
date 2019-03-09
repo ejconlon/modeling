@@ -5,18 +5,12 @@ import Data.Aeson.Encoding.Internal (pair)
 import Data.Aeson.Types (Parser, parseEither)
 import qualified Data.HashMap.Strict as HM
 import Data.Map (Map)
-import Data.String (IsString, fromString)
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Void (Void)
 import GHC.Generics (Generic, Generic1)
 import Modeling.Data.Aeson
-
--- Aeson errors are stringy
-newtype ErrorMsg = ErrorMsg { unErrorMsg :: Text } deriving (Show, Eq, IsString)
-
-renderErrorMsg :: ErrorMsg -> String
-renderErrorMsg = T.unpack . unErrorMsg
+import Modeling.Data.Error
 
 data Sum a = Sum Text (Maybe a) deriving (Show, Eq, Functor, Foldable, Traversable)
 
@@ -45,14 +39,6 @@ instance FromJSON a => FromJSON (Sum a) where
                         a <- o .: n
                         b <- parseJSON a
                         pure (Sum n (Just b))
-
-data DomainInjectionError ne ae = DomainNameError ne | DomainAttributesError ae deriving (Generic, Eq, Show)
-
-onlyNameError :: DomainInjectionError ne Void -> ne
-onlyNameError (DomainNameError ne) = ne
-
-onlyAttributesError :: DomainInjectionError Void ae -> ae
-onlyAttributesError (DomainAttributesError ae) = ae
 
 missingAttrs, unexpectedAttrs :: ErrorMsg
 missingAttrs = ErrorMsg "Missing attributes field"

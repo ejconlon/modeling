@@ -14,6 +14,7 @@ dependencies:
 - base >= 4.11 && < 5
 - aeson
 - aeson-casing
+- aeson-typescript
 - bytestring
 - containers
 - data-fix
@@ -42,11 +43,11 @@ default-extensions:
   - FlexibleInstances
   - GeneralizedNewtypeDeriving
   - KindSignatures
+  - MultiParamTypeClasses
   - NamedFieldPuns
   - OverloadedStrings
   - Rank2Types
   - RecordWildCards
-  - StandaloneDeriving
   - TypeApplications
   - TypeFamilies
 
@@ -74,4 +75,3 @@ executables:
     source-dirs: tsdef
     dependencies:
     - modeling
-    - aeson-typescript
