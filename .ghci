@@ -1,0 +1,4 @@
+:set prompt "> "
+import Data.Proxy (Proxy (..))
+import Text.Pretty.Simple (pPrint)
+

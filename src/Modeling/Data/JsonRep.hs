@@ -21,7 +21,6 @@ data JsonRep a =
     | JsonRepOptional a
     deriving (Show, Eq, Functor, Foldable, Traversable)
 
-
 instance HasGenRep JsonRep Value where
     getGenRoot _ = GenTypeFix (GenEmbed JsonRepAny)
     getGenDecl _ = Nothing
